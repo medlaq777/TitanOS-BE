@@ -1,0 +1,13 @@
+{
+  "name": "titanos-backend",
+  "version": "1.0.0",
+  "description": "TitanOs Backend API",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "author": "MED LAQ",
+  "license": "ISC"
+}
