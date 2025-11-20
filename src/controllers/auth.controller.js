@@ -4,11 +4,13 @@ import { UnauthorizedError } from "../common/errors.js";
 
 const REFRESH_COOKIE = "refreshToken";
 
+// HttpOnly prevents JS access; secure enforced in production; sameSite=strict blocks CSRF
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, matches JWT_REFRESH_EXPIRES_IN
+  path: "/api/auth",
 };
 
 export class AuthController {
