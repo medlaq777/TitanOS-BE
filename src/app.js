@@ -15,6 +15,10 @@ import aiRouter from "./routers/ai.routes.js";
 
 const app = express();
 
+// helmet: sets 14 security-related HTTP headers (CSP, HSTS, X-Frame-Options, etc.)
+app.use(helmet());
+
+// CORS: restrict origins, allow credentials (cookies), preflight on all /api/* routes
 const corsOptions = {
   origin: process.env.CORS_ORIGIN?.split(",") ?? ["http://localhost:3000"],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -22,8 +26,6 @@ const corsOptions = {
   exposedHeaders: ["Authorization"],
   credentials: true,
 };
-
-app.use(helmet());
 app.use(cors(corsOptions));
 app.options("/api/*", cors(corsOptions));
 app.use(morgan("dev"));
