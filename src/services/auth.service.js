@@ -2,6 +2,10 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { UnauthorizedError, ValidationError } from "../common/errors.js";
 
+// bcrypt cost factors: 12 for passwords (register), 10 for refresh token hashes
+const BCRYPT_ROUNDS = 12;
+const REFRESH_HASH_ROUNDS = 10;
+
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES_IN ?? "15m";
@@ -15,7 +19,7 @@ export class AuthService {
   async register({ email, password, role }) {
     const existing = await this.authRepository.findByEmail(email);
     if (existing) throw new ValidationError("Email already in use");
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     return this.authRepository.create({ email, passwordHash, role });
   }
 
@@ -25,7 +29,7 @@ export class AuthService {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new UnauthorizedError("Invalid credentials");
     const { accessToken, refreshToken } = this._generateTokens(user);
-    const refreshHash = await bcrypt.hash(refreshToken, 10);
+    const refreshHash = await bcrypt.hash(refreshToken, REFRESH_HASH_ROUNDS);
     await this.authRepository.updateRefreshToken(user.id, refreshHash);
     return { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role } };
   }
@@ -42,7 +46,7 @@ export class AuthService {
     const valid = await bcrypt.compare(token, user.refreshToken);
     if (!valid) throw new UnauthorizedError("Invalid refresh token");
     const { accessToken, refreshToken } = this._generateTokens(user);
-    const refreshHash = await bcrypt.hash(refreshToken, 10);
+    const refreshHash = await bcrypt.hash(refreshToken, REFRESH_HASH_ROUNDS);
     await this.authRepository.updateRefreshToken(user.id, refreshHash);
     return { accessToken, refreshToken };
   }
