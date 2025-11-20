@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { UnauthorizedError, ValidationError } from "../common/errors.js";
+import { validate } from "../common/validate.js";
+import { registerSchema, loginSchema } from "../schemas/auth.schemas.js";
 
 // bcrypt cost factors: 12 for passwords (register), 10 for refresh token hashes
 const BCRYPT_ROUNDS = 12;
@@ -16,14 +18,16 @@ export class AuthService {
     this.authRepository = authRepository;
   }
 
-  async register({ email, password, role }) {
+  async register(body) {
+    const { email, password, role } = validate(registerSchema, body);
     const existing = await this.authRepository.findByEmail(email);
     if (existing) throw new ValidationError("Email already in use");
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     return this.authRepository.create({ email, passwordHash, role });
   }
 
-  async login({ email, password }) {
+  async login(body) {
+    const { email, password } = validate(loginSchema, body);
     const user = await this.authRepository.findByEmail(email);
     if (!user) throw new UnauthorizedError("Invalid credentials");
     const valid = await bcrypt.compare(password, user.passwordHash);
