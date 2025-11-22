@@ -21,6 +21,26 @@ enum MemberType {
   STAFF
 }
 
+enum Position {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+  WINGER
+  STRIKER
+  OTHER
+}
+
+enum InjuryType {
+  MUSCLE
+  LIGAMENT
+  TENDON
+  BONE
+  CONCUSSION
+  JOINT
+  OTHER
+}
+
 enum SessionType {
   TRAINING
   MATCH
@@ -72,7 +92,7 @@ model Member {
   user         User       @relation(fields: [userId], references: [id])
   firstName    String
   lastName     String
-  position     String?
+  position     Position?
   jerseyNumber Int?
   type         MemberType @default(PLAYER)
   teamId       String?
@@ -80,13 +100,14 @@ model Member {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  sessions    SessionMember[]
-  matchEvents    MatchEvent[]
-  medicalRecords MedicalRecord[]
-  wellnessForms  WellnessForm[]
-  aiInsights     AIInsight[]
-  performances   Performance[]
+  sessions         SessionMember[]
+  matchEvents      MatchEvent[]
+  medicalRecords   MedicalRecord[]
+  wellnessForms    WellnessForm[]
+  aiInsights       AIInsight[]
+  performances     Performance[]
 
+  @@index([teamId])
   @@map("members")
 }
 
@@ -120,10 +141,12 @@ model Session {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
-  participants  SessionMember[]
-  performances  Performance[]
-  tacticalHubs  TacticalHub[]
+  participants SessionMember[]
+  performances Performance[]
+  tacticalHubs TacticalHub[]
 
+  @@index([teamId])
+  @@index([date])
   @@map("sessions")
 }
 
@@ -154,6 +177,10 @@ model Match {
   events     MatchEvent[]
   fanActions FanAction[]
 
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([scheduledAt])
+  @@index([status])
   @@map("matches")
 }
 
@@ -168,6 +195,8 @@ model MatchEvent {
   detail    String?
   createdAt DateTime       @default(now())
 
+  @@index([matchId])
+  @@index([memberId])
   @@map("match_events")
 }
 
@@ -183,6 +212,8 @@ model Article {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  @@index([authorId])
+  @@index([status])
   @@map("articles")
 }
 
@@ -203,6 +234,8 @@ model FanAction {
   payload   Json?
   createdAt DateTime      @default(now())
 
+  @@index([userId])
+  @@index([matchId])
   @@map("fan_actions")
 }
 
@@ -215,23 +248,29 @@ model AuditLog {
   resourceId String?
   ipAddress  String?
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
+  @@index([userId])
+  @@index([createdAt])
   @@map("audit_logs")
 }
 
 model MedicalRecord {
-  id         String   @id @default(uuid())
-  memberId   String
-  member     Member   @relation(fields: [memberId], references: [id])
-  diagnosis  String
-  treatment  String?
-  notes      String?
-  fileUrls   String[]
-  recordedAt DateTime
-  createdBy  String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String      @id @default(uuid())
+  memberId    String
+  member      Member      @relation(fields: [memberId], references: [id])
+  diagnosis   String
+  injuryType  InjuryType?
+  treatment   String?
+  notes       String?
+  fileUrls    String[]
+  recordedAt  DateTime
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
+  @@index([memberId])
+  @@index([recordedAt])
   @@map("medical_records")
 }
 
@@ -246,7 +285,10 @@ model WellnessForm {
   notes     String?
   date      DateTime
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@index([memberId])
+  @@index([date])
   @@map("wellness_forms")
 }
 
@@ -266,6 +308,8 @@ model AIInsight {
   dataWindow     Int
   generatedAt    DateTime  @default(now())
 
+  @@index([memberId])
+  @@index([generatedAt])
   @@map("ai_insights")
 }
 
@@ -283,6 +327,8 @@ model Performance {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  @@index([memberId])
+  @@index([sessionId])
   @@map("performances")
 }
 
@@ -308,6 +354,8 @@ model TacticalHub {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
+  @@index([teamId])
+  @@index([sessionId])
   @@map("tactical_hubs")
 }
 
@@ -343,5 +391,7 @@ model Media {
 
   tacticalHub TacticalHub?
 
+  @@index([ownerId])
+  @@index([teamId])
   @@map("media")
 }
