@@ -4,6 +4,12 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
+import authRouter from "./modules/auth/auth.routes.js";
+import sportRouter from "./modules/sport/sport.routes.js";
+import medicalRouter from "./modules/medical/medical.routes.js";
+import mediaRouter from "./modules/media/media.routes.js";
+import fanRouter from "./modules/fan/fan.routes.js";
+
 const app = express();
 
 const corsOptions = {
@@ -21,5 +27,11 @@ app.disable("x-powered-by");
 app.use("/api/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use("/api/auth", authRouter);
+app.use("/api/sport", sportRouter);
+app.use("/api/medical", medicalRouter);
+app.use("/api/media", mediaRouter);
+app.use("/api/fan", fanRouter);
 
 export default app;
