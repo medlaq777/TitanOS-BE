@@ -27,6 +27,13 @@ enum SessionType {
   MEETING
 }
 
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  CANCELLED
+}
+
 model User {
   id         String   @id @default(uuid())
   keycloakId String   @unique
@@ -67,8 +74,10 @@ model Team {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members  Member[]
-  sessions Session[]
+  members     Member[]
+  sessions    Session[]
+  homeMatches Match[]   @relation("HomeTeam")
+  awayMatches Match[]   @relation("AwayTeam")
 
   @@map("teams")
 }
@@ -98,4 +107,21 @@ model SessionMember {
 
   @@id([sessionId, memberId])
   @@map("session_members")
+}
+
+model Match {
+  id          String      @id @default(uuid())
+  homeTeamId  String
+  awayTeamId  String
+  homeTeam    Team        @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam    Team        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeScore   Int         @default(0)
+  awayScore   Int         @default(0)
+  status      MatchStatus @default(SCHEDULED)
+  scheduledAt DateTime
+  venue       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("matches")
 }
