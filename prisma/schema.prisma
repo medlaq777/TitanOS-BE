@@ -21,6 +21,12 @@ enum MemberType {
   STAFF
 }
 
+enum SessionType {
+  TRAINING
+  MATCH
+  MEETING
+}
+
 model User {
   id         String   @id @default(uuid())
   keycloakId String   @unique
@@ -48,6 +54,8 @@ model Member {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  sessions SessionMember[]
+
   @@map("members")
 }
 
@@ -59,7 +67,35 @@ model Team {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members Member[]
+  members  Member[]
+  sessions Session[]
 
   @@map("teams")
+}
+
+model Session {
+  id        String      @id @default(uuid())
+  title     String
+  type      SessionType
+  date      DateTime
+  duration  Int?
+  location  String?
+  teamId    String
+  team      Team        @relation(fields: [teamId], references: [id])
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  participants SessionMember[]
+
+  @@map("sessions")
+}
+
+model SessionMember {
+  sessionId String
+  memberId  String
+  session   Session @relation(fields: [sessionId], references: [id])
+  member    Member  @relation(fields: [memberId], references: [id])
+
+  @@id([sessionId, memberId])
+  @@map("session_members")
 }
