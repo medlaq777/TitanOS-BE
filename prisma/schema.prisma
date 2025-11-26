@@ -34,6 +34,14 @@ enum MatchStatus {
   CANCELLED
 }
 
+enum MatchEventType {
+  GOAL
+  YELLOW_CARD
+  RED_CARD
+  SUBSTITUTION
+  INJURY
+}
+
 model User {
   id         String   @id @default(uuid())
   keycloakId String   @unique
@@ -61,7 +69,8 @@ model Member {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  sessions SessionMember[]
+  sessions    SessionMember[]
+  matchEvents MatchEvent[]
 
   @@map("members")
 }
@@ -123,5 +132,21 @@ model Match {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  events MatchEvent[]
+
   @@map("matches")
+}
+
+model MatchEvent {
+  id       String         @id @default(uuid())
+  matchId  String
+  match    Match          @relation(fields: [matchId], references: [id])
+  memberId String?
+  member   Member?        @relation(fields: [memberId], references: [id])
+  type     MatchEventType
+  minute   Int
+  detail   String?
+  createdAt DateTime      @default(now())
+
+  @@map("match_events")
 }
