@@ -15,6 +15,12 @@ enum Role {
   FAN
 }
 
+enum MemberType {
+  PLAYER
+  COACH
+  STAFF
+}
+
 model User {
   id         String   @id @default(uuid())
   keycloakId String   @unique
@@ -23,5 +29,22 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  member Member?
+
   @@map("users")
+}
+
+model Member {
+  id           String     @id @default(uuid())
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id])
+  firstName    String
+  lastName     String
+  position     String?
+  jerseyNumber Int?
+  type         MemberType @default(PLAYER)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("members")
 }
