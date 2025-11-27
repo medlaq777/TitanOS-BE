@@ -81,6 +81,7 @@ model Member {
   sessions    SessionMember[]
   matchEvents    MatchEvent[]
   medicalRecords MedicalRecord[]
+  wellnessForms  WellnessForm[]
 
   @@map("members")
 }
@@ -224,4 +225,19 @@ model MedicalRecord {
   updatedAt  DateTime @updatedAt
 
   @@map("medical_records")
+}
+
+model WellnessForm {
+  id        String   @id @default(uuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id])
+  fatigue   Int
+  sleep     Int
+  stress    Int
+  mood      Int?
+  notes     String?
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  @@map("wellness_forms")
 }
