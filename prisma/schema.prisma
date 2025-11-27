@@ -82,6 +82,7 @@ model Member {
   matchEvents    MatchEvent[]
   medicalRecords MedicalRecord[]
   wellnessForms  WellnessForm[]
+  aiInsights     AIInsight[]
 
   @@map("members")
 }
@@ -240,4 +241,23 @@ model WellnessForm {
   createdAt DateTime @default(now())
 
   @@map("wellness_forms")
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model AIInsight {
+  id             String    @id @default(uuid())
+  memberId       String
+  member         Member    @relation(fields: [memberId], references: [id])
+  riskLevel      RiskLevel
+  summary        String
+  recommendation String?
+  dataWindow     Int
+  generatedAt    DateTime  @default(now())
+
+  @@map("ai_insights")
 }
