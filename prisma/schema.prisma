@@ -42,6 +42,12 @@ enum MatchEventType {
   INJURY
 }
 
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model User {
   id         String   @id @default(uuid())
   keycloakId String   @unique
@@ -50,7 +56,8 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  member Member?
+  member   Member?
+  articles Article[]
 
   @@map("users")
 }
@@ -138,15 +145,30 @@ model Match {
 }
 
 model MatchEvent {
-  id       String         @id @default(uuid())
-  matchId  String
-  match    Match          @relation(fields: [matchId], references: [id])
-  memberId String?
-  member   Member?        @relation(fields: [memberId], references: [id])
-  type     MatchEventType
-  minute   Int
-  detail   String?
-  createdAt DateTime      @default(now())
+  id        String         @id @default(uuid())
+  matchId   String
+  match     Match          @relation(fields: [matchId], references: [id])
+  memberId  String?
+  member    Member?        @relation(fields: [memberId], references: [id])
+  type      MatchEventType
+  minute    Int
+  detail    String?
+  createdAt DateTime       @default(now())
 
   @@map("match_events")
+}
+
+model Article {
+  id          String        @id @default(uuid())
+  title       String
+  content     String
+  coverImage  String?
+  status      ArticleStatus @default(DRAFT)
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("articles")
 }
