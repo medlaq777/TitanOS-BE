@@ -59,6 +59,7 @@ model User {
   member      Member?
   articles    Article[]
   fanActions  FanAction[]
+  auditLogs   AuditLog[]
 
   @@map("users")
 }
@@ -193,4 +194,17 @@ model FanAction {
   createdAt DateTime      @default(now())
 
   @@map("fan_actions")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  resource   String
+  resourceId String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
 }
