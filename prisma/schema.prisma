@@ -98,8 +98,9 @@ model Team {
 
   members     Member[]
   sessions    Session[]
-  homeMatches Match[]   @relation("HomeTeam")
-  awayMatches Match[]   @relation("AwayTeam")
+  homeMatches  Match[]        @relation("HomeTeam")
+  awayMatches  Match[]        @relation("AwayTeam")
+  tacticalHubs TacticalHub[]
 
   @@map("teams")
 }
@@ -116,8 +117,9 @@ model Session {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
-  participants SessionMember[]
+  participants  SessionMember[]
   performances  Performance[]
+  tacticalHubs  TacticalHub[]
 
   @@map("sessions")
 }
@@ -279,4 +281,27 @@ model Performance {
   updatedAt  DateTime @updatedAt
 
   @@map("performances")
+}
+
+enum TacticalContentType {
+  FORMATION
+  PLAY
+  ANALYSIS
+  HIGHLIGHT
+}
+
+model TacticalHub {
+  id          String              @id @default(uuid())
+  title       String
+  description String?
+  contentType TacticalContentType
+  teamId      String
+  team        Team                @relation(fields: [teamId], references: [id])
+  sessionId   String?
+  session     Session?            @relation(fields: [sessionId], references: [id])
+  createdBy   String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("tactical_hubs")
 }
