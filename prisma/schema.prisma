@@ -60,6 +60,7 @@ model User {
   articles    Article[]
   fanActions  FanAction[]
   auditLogs   AuditLog[]
+  media       Media[]
 
   @@map("users")
 }
@@ -101,6 +102,7 @@ model Team {
   homeMatches  Match[]        @relation("HomeTeam")
   awayMatches  Match[]        @relation("AwayTeam")
   tacticalHubs TacticalHub[]
+  media        Media[]
 
   @@map("teams")
 }
@@ -299,6 +301,8 @@ model TacticalHub {
   team        Team                @relation(fields: [teamId], references: [id])
   sessionId   String?
   session     Session?            @relation(fields: [sessionId], references: [id])
+  mediaId     String?             @unique
+  media       Media?              @relation(fields: [mediaId], references: [id])
   createdBy   String
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
@@ -306,13 +310,37 @@ model TacticalHub {
   @@map("tactical_hubs")
 }
 
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  TACTICAL
+}
+
+enum MediaAccess {
+  PUBLIC
+  PRIVATE
+  TEAM
+}
+
 model Media {
-  id         String   @id @default(uuid())
+  id         String      @id @default(uuid())
   filename   String
   fileUrl    String
   bucketName String
-  objectKey  String   @unique
-  createdAt  DateTime @default(now())
+  objectKey  String      @unique
+  mimeType   String
+  size       Int
+  type       MediaType
+  access     MediaAccess @default(PRIVATE)
+  ownerId    String
+  owner      User        @relation(fields: [ownerId], references: [id])
+  teamId     String?
+  team       Team?       @relation(fields: [teamId], references: [id])
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  tacticalHub TacticalHub?
 
   @@map("media")
 }
