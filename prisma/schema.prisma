@@ -305,3 +305,14 @@ model TacticalHub {
 
   @@map("tactical_hubs")
 }
+
+model Media {
+  id         String   @id @default(uuid())
+  filename   String
+  fileUrl    String
+  bucketName String
+  objectKey  String   @unique
+  createdAt  DateTime @default(now())
+
+  @@map("media")
+}
