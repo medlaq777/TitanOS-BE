@@ -83,6 +83,7 @@ model Member {
   medicalRecords MedicalRecord[]
   wellnessForms  WellnessForm[]
   aiInsights     AIInsight[]
+  performances   Performance[]
 
   @@map("members")
 }
@@ -116,6 +117,7 @@ model Session {
   updatedAt DateTime    @updatedAt
 
   participants SessionMember[]
+  performances  Performance[]
 
   @@map("sessions")
 }
@@ -260,4 +262,21 @@ model AIInsight {
   generatedAt    DateTime  @default(now())
 
   @@map("ai_insights")
+}
+
+model Performance {
+  id         String   @id @default(uuid())
+  memberId   String
+  member     Member   @relation(fields: [memberId], references: [id])
+  sessionId  String?
+  session    Session? @relation(fields: [sessionId], references: [id])
+  distance   Float?
+  speed      Float?
+  rating     Int?
+  notes      String?
+  recordedAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("performances")
 }
