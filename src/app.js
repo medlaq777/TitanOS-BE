@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import cookieParser from "cookie-parser";
 
 import authRouter from "./routers/auth.routes.js";
 import sportRouter from "./routers/sport.routes.js";
@@ -27,6 +28,7 @@ app.disable("x-powered-by");
 app.use("/api/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.use("/api/auth", authRouter);
 app.use("/api/sport", sportRouter);
