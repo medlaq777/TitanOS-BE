@@ -6,7 +6,8 @@ export function authGuard(req, res, next) {
   if (!authHeader?.startsWith("Bearer ")) return next(new UnauthorizedError());
   const token = authHeader.slice(7);
   try {
-    jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    req.user = { id: payload.sub, email: payload.email, role: payload.role };
     next();
   } catch {
     next(new UnauthorizedError("Token expired or invalid"));
