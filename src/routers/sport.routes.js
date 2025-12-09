@@ -20,4 +20,10 @@ sportRouter.post("/teams", rolesGuard("ADMIN", "STAFF"), sportController.createT
 sportRouter.put("/teams/:id", rolesGuard("ADMIN", "STAFF"), sportController.updateTeam);
 sportRouter.delete("/teams/:id", rolesGuard("ADMIN"), sportController.deleteTeam);
 
+sportRouter.get("/members", sportController.getAllMembers);
+sportRouter.get("/members/:id", sportController.getMemberById);
+sportRouter.post("/members", rolesGuard("ADMIN", "STAFF"), sportController.createMember);
+sportRouter.put("/members/:id", rolesGuard("ADMIN", "STAFF"), sportController.updateMember);
+sportRouter.delete("/members/:id", rolesGuard("ADMIN"), sportController.deleteMember);
+
 export default sportRouter;

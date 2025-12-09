@@ -22,4 +22,27 @@ export class SportRepository {
   deleteTeam(id) {
     return this.prisma.team.delete({ where: { id } });
   }
+
+  findAllMembers(teamId) {
+    return this.prisma.member.findMany({
+      where: teamId ? { teamId } : undefined,
+      include: { user: true, team: true },
+    });
+  }
+
+  findMemberById(id) {
+    return this.prisma.member.findUnique({ where: { id }, include: { user: true, team: true } });
+  }
+
+  createMember(data) {
+    return this.prisma.member.create({ data, include: { user: true } });
+  }
+
+  updateMember(id, data) {
+    return this.prisma.member.update({ where: { id }, data });
+  }
+
+  deleteMember(id) {
+    return this.prisma.member.delete({ where: { id } });
+  }
 }

@@ -1,6 +1,9 @@
 import { NotFoundError } from "../common/errors.js";
 import { validate } from "../common/validate.js";
-import { createTeamSchema, updateTeamSchema } from "../schemas/sport.schemas.js";
+import {
+  createTeamSchema, updateTeamSchema,
+  createMemberSchema, updateMemberSchema,
+} from "../schemas/sport.schemas.js";
 
 export class SportService {
   constructor(sportRepository) {
@@ -31,5 +34,31 @@ export class SportService {
   async deleteTeam(id) {
     await this.getTeamById(id);
     return this.sportRepository.deleteTeam(id);
+  }
+
+  getAllMembers(teamId) {
+    return this.sportRepository.findAllMembers(teamId);
+  }
+
+  async getMemberById(id) {
+    const member = await this.sportRepository.findMemberById(id);
+    if (!member) throw new NotFoundError("Member not found");
+    return member;
+  }
+
+  createMember(body) {
+    const data = validate(createMemberSchema, body);
+    return this.sportRepository.createMember(data);
+  }
+
+  async updateMember(id, body) {
+    await this.getMemberById(id);
+    const data = validate(updateMemberSchema, body);
+    return this.sportRepository.updateMember(id, data);
+  }
+
+  async deleteMember(id) {
+    await this.getMemberById(id);
+    return this.sportRepository.deleteMember(id);
   }
 }
