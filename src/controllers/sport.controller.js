@@ -55,4 +55,14 @@ export class SportController {
     await this.sportService.deleteMember(req.params.id);
     return noContent(res);
   });
+
+  linkMemberToTeam = asyncWrapper(async (req, res) => {
+    const member = await this.sportService.linkMemberToTeam(req.params.id, req.body.teamId);
+    return success(res, member);
+  });
+
+  unlinkMemberFromTeam = asyncWrapper(async (req, res) => {
+    const member = await this.sportService.unlinkMemberFromTeam(req.params.id);
+    return success(res, member);
+  });
 }

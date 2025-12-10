@@ -61,4 +61,15 @@ export class SportService {
     await this.getMemberById(id);
     return this.sportRepository.deleteMember(id);
   }
+
+  async linkMemberToTeam(memberId, teamId) {
+    await this.getMemberById(memberId);
+    await this.getTeamById(teamId);
+    return this.sportRepository.updateMember(memberId, { teamId });
+  }
+
+  async unlinkMemberFromTeam(memberId) {
+    await this.getMemberById(memberId);
+    return this.sportRepository.updateMember(memberId, { teamId: null });
+  }
 }

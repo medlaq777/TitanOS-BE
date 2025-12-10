@@ -25,5 +25,7 @@ sportRouter.get("/members/:id", sportController.getMemberById);
 sportRouter.post("/members", rolesGuard("ADMIN", "STAFF"), sportController.createMember);
 sportRouter.put("/members/:id", rolesGuard("ADMIN", "STAFF"), sportController.updateMember);
 sportRouter.delete("/members/:id", rolesGuard("ADMIN"), sportController.deleteMember);
+sportRouter.patch("/members/:id/team", rolesGuard("ADMIN", "STAFF"), sportController.linkMemberToTeam);
+sportRouter.delete("/members/:id/team", rolesGuard("ADMIN", "STAFF"), sportController.unlinkMemberFromTeam);
 
 export default sportRouter;
