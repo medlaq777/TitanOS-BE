@@ -90,4 +90,14 @@ export class SportController {
     await this.sportService.deleteSession(req.params.id);
     return noContent(res);
   });
+
+  addParticipant = asyncWrapper(async (req, res) => {
+    await this.sportService.addParticipant(req.params.id, req.body.memberId);
+    return noContent(res);
+  });
+
+  removeParticipant = asyncWrapper(async (req, res) => {
+    await this.sportService.removeParticipant(req.params.id, req.params.memberId);
+    return noContent(res);
+  });
 }

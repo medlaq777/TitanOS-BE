@@ -72,4 +72,14 @@ export class SportRepository {
   deleteSession(id) {
     return this.prisma.session.delete({ where: { id } });
   }
+
+  addParticipant(sessionId, memberId) {
+    return this.prisma.sessionMember.create({ data: { sessionId, memberId } });
+  }
+
+  removeParticipant(sessionId, memberId) {
+    return this.prisma.sessionMember.delete({
+      where: { sessionId_memberId: { sessionId, memberId } },
+    });
+  }
 }

@@ -103,4 +103,13 @@ export class SportService {
     await this.getSessionById(id);
     return this.sportRepository.deleteSession(id);
   }
+
+  async addParticipant(sessionId, memberId) {
+    await this.getSessionById(sessionId);
+    return this.sportRepository.addParticipant(sessionId, memberId);
+  }
+
+  async removeParticipant(sessionId, memberId) {
+    return this.sportRepository.removeParticipant(sessionId, memberId);
+  }
 }
