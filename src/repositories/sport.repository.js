@@ -45,4 +45,31 @@ export class SportRepository {
   deleteMember(id) {
     return this.prisma.member.delete({ where: { id } });
   }
+
+  findAllSessions(teamId) {
+    return this.prisma.session.findMany({
+      where: teamId ? { teamId } : undefined,
+      include: { team: true, participants: { include: { member: true } } },
+      orderBy: { date: 'asc' },
+    });
+  }
+
+  findSessionById(id) {
+    return this.prisma.session.findUnique({
+      where: { id },
+      include: { team: true, participants: { include: { member: true } }, performances: true },
+    });
+  }
+
+  createSession(data) {
+    return this.prisma.session.create({ data });
+  }
+
+  updateSession(id, data) {
+    return this.prisma.session.update({ where: { id }, data });
+  }
+
+  deleteSession(id) {
+    return this.prisma.session.delete({ where: { id } });
+  }
 }

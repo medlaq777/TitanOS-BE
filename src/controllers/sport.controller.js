@@ -1,5 +1,5 @@
-import { asyncWrapper } from "../common/asyncWrapper.js";
-import { success, created, noContent } from "../common/response.js";
+import { asyncWrapper } from '../common/asyncWrapper.js';
+import { success, created, noContent } from '../common/response.js';
 
 export class SportController {
   constructor(sportService) {
@@ -64,5 +64,30 @@ export class SportController {
   unlinkMemberFromTeam = asyncWrapper(async (req, res) => {
     const member = await this.sportService.unlinkMemberFromTeam(req.params.id);
     return success(res, member);
+  });
+
+  getAllSessions = asyncWrapper(async (req, res) => {
+    const sessions = await this.sportService.getAllSessions(req.query.teamId);
+    return success(res, sessions);
+  });
+
+  getSessionById = asyncWrapper(async (req, res) => {
+    const session = await this.sportService.getSessionById(req.params.id);
+    return success(res, session);
+  });
+
+  createSession = asyncWrapper(async (req, res) => {
+    const session = await this.sportService.createSession(req.body);
+    return created(res, session);
+  });
+
+  updateSession = asyncWrapper(async (req, res) => {
+    const session = await this.sportService.updateSession(req.params.id, req.body);
+    return success(res, session);
+  });
+
+  deleteSession = asyncWrapper(async (req, res) => {
+    await this.sportService.deleteSession(req.params.id);
+    return noContent(res);
   });
 }
