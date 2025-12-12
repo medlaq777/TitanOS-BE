@@ -67,7 +67,8 @@ export class SportController {
   });
 
   getAllSessions = asyncWrapper(async (req, res) => {
-    const sessions = await this.sportService.getAllSessions(req.query.teamId);
+    const { teamId, from, to } = req.query;
+    const sessions = await this.sportService.getAllSessions(teamId, from, to);
     return success(res, sessions);
   });
 

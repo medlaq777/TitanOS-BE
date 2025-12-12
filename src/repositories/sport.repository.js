@@ -46,9 +46,13 @@ export class SportRepository {
     return this.prisma.member.delete({ where: { id } });
   }
 
-  findAllSessions(teamId) {
+  findAllSessions(teamId, from, to) {
     return this.prisma.session.findMany({
-      where: teamId ? { teamId } : undefined,
+      where: {
+        ...(teamId && { teamId }),
+        ...(from && { date: { gte: new Date(from) } }),
+        ...(to && { date: { lte: new Date(to) } }),
+      },
       include: { team: true, participants: { include: { member: true } } },
       orderBy: { date: 'asc' },
     });

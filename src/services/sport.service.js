@@ -74,8 +74,8 @@ export class SportService {
     return this.sportRepository.updateMember(memberId, { teamId: null });
   }
 
-  getAllSessions(teamId) {
-    return this.sportRepository.findAllSessions(teamId);
+  getAllSessions(teamId, from, to) {
+    return this.sportRepository.findAllSessions(teamId, from, to);
   }
 
   async getSessionById(id) {
