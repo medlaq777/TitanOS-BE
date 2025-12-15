@@ -127,6 +127,11 @@ export class SportController {
     return noContent(res);
   });
 
+  getPerformancesBySession = asyncWrapper(async (req, res) => {
+    const performances = await this.sportService.getPerformancesBySession(req.params.id);
+    return success(res, performances);
+  });
+
   getPlayerStats = asyncWrapper(async (req, res) => {
     const stats = await this.sportService.getPlayerStats(req.params.memberId);
     return success(res, stats);

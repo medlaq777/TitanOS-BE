@@ -33,6 +33,7 @@ sportRouter.get('/sessions/:id', sportController.getSessionById);
 sportRouter.post('/sessions', rolesGuard('ADMIN', 'STAFF'), sportController.createSession);
 sportRouter.put('/sessions/:id', rolesGuard('ADMIN', 'STAFF'), sportController.updateSession);
 sportRouter.delete('/sessions/:id', rolesGuard('ADMIN'), sportController.deleteSession);
+sportRouter.get('/sessions/:id/performances', sportController.getPerformancesBySession);
 sportRouter.post('/sessions/:id/participants', rolesGuard('ADMIN', 'STAFF'), sportController.addParticipant);
 sportRouter.delete('/sessions/:id/participants/:memberId', rolesGuard('ADMIN', 'STAFF'), sportController.removeParticipant);
 

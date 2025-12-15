@@ -140,6 +140,11 @@ export class SportService {
     return this.sportRepository.deletePerformance(id);
   }
 
+  async getPerformancesBySession(sessionId) {
+    await this.getSessionById(sessionId);
+    return this.sportRepository.findPerformancesBySession(sessionId);
+  }
+
   async getPlayerStats(memberId) {
     await this.getMemberById(memberId);
     return this.sportRepository.getPlayerStats(memberId);
