@@ -113,4 +113,14 @@ export class SportRepository {
   deletePerformance(id) {
     return this.prisma.performance.delete({ where: { id } });
   }
+
+  getPlayerStats(memberId) {
+    return this.prisma.performance.aggregate({
+      where: { memberId },
+      _avg: { distance: true, speed: true, rating: true },
+      _max: { distance: true, speed: true, rating: true },
+      _min: { distance: true, speed: true, rating: true },
+      _count: { id: true },
+    });
+  }
 }

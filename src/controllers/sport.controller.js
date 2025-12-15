@@ -126,4 +126,9 @@ export class SportController {
     await this.sportService.deletePerformance(req.params.id);
     return noContent(res);
   });
+
+  getPlayerStats = asyncWrapper(async (req, res) => {
+    const stats = await this.sportService.getPlayerStats(req.params.memberId);
+    return success(res, stats);
+  });
 }
