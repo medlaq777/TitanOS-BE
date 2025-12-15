@@ -36,4 +36,10 @@ sportRouter.delete('/sessions/:id', rolesGuard('ADMIN'), sportController.deleteS
 sportRouter.post('/sessions/:id/participants', rolesGuard('ADMIN', 'STAFF'), sportController.addParticipant);
 sportRouter.delete('/sessions/:id/participants/:memberId', rolesGuard('ADMIN', 'STAFF'), sportController.removeParticipant);
 
+sportRouter.get('/members/:memberId/performances', sportController.getPerformancesByMember);
+sportRouter.get('/performances/:id', sportController.getPerformanceById);
+sportRouter.post('/performances', rolesGuard('ADMIN', 'STAFF'), sportController.createPerformance);
+sportRouter.put('/performances/:id', rolesGuard('ADMIN', 'STAFF'), sportController.updatePerformance);
+sportRouter.delete('/performances/:id', rolesGuard('ADMIN'), sportController.deletePerformance);
+
 export default sportRouter;

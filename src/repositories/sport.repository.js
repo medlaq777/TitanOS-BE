@@ -86,4 +86,31 @@ export class SportRepository {
       where: { sessionId_memberId: { sessionId, memberId } },
     });
   }
+
+  findPerformancesByMember(memberId) {
+    return this.prisma.performance.findMany({
+      where: { memberId },
+      include: { session: true },
+      orderBy: { recordedAt: 'desc' },
+    });
+  }
+
+  findPerformanceById(id) {
+    return this.prisma.performance.findUnique({
+      where: { id },
+      include: { member: true, session: true },
+    });
+  }
+
+  createPerformance(data) {
+    return this.prisma.performance.create({ data });
+  }
+
+  updatePerformance(id, data) {
+    return this.prisma.performance.update({ where: { id }, data });
+  }
+
+  deletePerformance(id) {
+    return this.prisma.performance.delete({ where: { id } });
+  }
 }

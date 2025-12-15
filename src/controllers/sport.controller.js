@@ -101,4 +101,29 @@ export class SportController {
     await this.sportService.removeParticipant(req.params.id, req.params.memberId);
     return noContent(res);
   });
+
+  getPerformancesByMember = asyncWrapper(async (req, res) => {
+    const performances = await this.sportService.getPerformancesByMember(req.params.memberId);
+    return success(res, performances);
+  });
+
+  getPerformanceById = asyncWrapper(async (req, res) => {
+    const performance = await this.sportService.getPerformanceById(req.params.id);
+    return success(res, performance);
+  });
+
+  createPerformance = asyncWrapper(async (req, res) => {
+    const performance = await this.sportService.createPerformance(req.body);
+    return created(res, performance);
+  });
+
+  updatePerformance = asyncWrapper(async (req, res) => {
+    const performance = await this.sportService.updatePerformance(req.params.id, req.body);
+    return success(res, performance);
+  });
+
+  deletePerformance = asyncWrapper(async (req, res) => {
+    await this.sportService.deletePerformance(req.params.id);
+    return noContent(res);
+  });
 }

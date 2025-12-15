@@ -4,6 +4,7 @@ import {
   createTeamSchema, updateTeamSchema,
   createMemberSchema, updateMemberSchema,
   createSessionSchema, updateSessionSchema,
+  createPerformanceSchema, updatePerformanceSchema,
 } from '../schemas/sport.schemas.js';
 
 export class SportService {
@@ -111,5 +112,31 @@ export class SportService {
 
   async removeParticipant(sessionId, memberId) {
     return this.sportRepository.removeParticipant(sessionId, memberId);
+  }
+
+  getPerformancesByMember(memberId) {
+    return this.sportRepository.findPerformancesByMember(memberId);
+  }
+
+  async getPerformanceById(id) {
+    const perf = await this.sportRepository.findPerformanceById(id);
+    if (!perf) throw new NotFoundError('Performance record not found');
+    return perf;
+  }
+
+  createPerformance(body) {
+    const data = validate(createPerformanceSchema, body);
+    return this.sportRepository.createPerformance(data);
+  }
+
+  async updatePerformance(id, body) {
+    await this.getPerformanceById(id);
+    const data = validate(updatePerformanceSchema, body);
+    return this.sportRepository.updatePerformance(id, data);
+  }
+
+  async deletePerformance(id) {
+    await this.getPerformanceById(id);
+    return this.sportRepository.deletePerformance(id);
   }
 }
