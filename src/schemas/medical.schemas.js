@@ -5,6 +5,7 @@ export const createMedicalRecordSchema = z.object({
   diagnosis: z.string().min(1),
   treatment: z.string().optional(),
   notes: z.string().optional(),
+  fileUrls: z.array(z.string().url()).optional().default([]),
   recordedAt: z.string().datetime(),
   createdBy: z.string().min(1),
 });
