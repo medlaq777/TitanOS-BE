@@ -30,4 +30,14 @@ export class MedicalController {
     await this.medicalService.deleteRecord(req.params.id);
     return noContent(res);
   });
+
+  getSignedUrl = asyncWrapper(async (req, res) => {
+    const result = await this.medicalService.getSignedUrl(req.params.id, req.query.objectKey);
+    return success(res, result);
+  });
+
+  addFileReference = asyncWrapper(async (req, res) => {
+    const record = await this.medicalService.addFileReference(req.params.id, req.body.fileUrl);
+    return success(res, record);
+  });
 }

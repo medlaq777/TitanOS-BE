@@ -17,7 +17,9 @@ medicalRouter.use(rolesGuard('ADMIN', 'STAFF'));
 
 medicalRouter.get('/records', medicalController.getAllRecords);
 medicalRouter.get('/records/:id', medicalController.getRecordById);
+medicalRouter.get('/records/:id/signed-url', medicalController.getSignedUrl);
 medicalRouter.post('/records', medicalController.createRecord);
+medicalRouter.post('/records/:id/files', medicalController.addFileReference);
 medicalRouter.put('/records/:id', medicalController.updateRecord);
 medicalRouter.delete('/records/:id', medicalController.deleteRecord);
 
