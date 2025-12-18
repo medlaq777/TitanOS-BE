@@ -1,90 +1,98 @@
+import { asyncWrapper } from '../common/asyncWrapper.js';
+import { success, created, noContent } from '../common/response.js';
+
 export class FanController {
   constructor(fanService) {
     this.fanService = fanService;
-    this.createMatch = this.createMatch.bind(this);
-    this.getAllMatches = this.getAllMatches.bind(this);
-    this.getMatchById = this.getMatchById.bind(this);
-    this.updateMatch = this.updateMatch.bind(this);
-    this.deleteMatch = this.deleteMatch.bind(this);
-    this.addMatchEvent = this.addMatchEvent.bind(this);
-    this.getMatchTimeline = this.getMatchTimeline.bind(this);
-    this.deleteMatchEvent = this.deleteMatchEvent.bind(this);
-    this.createFanAction = this.createFanAction.bind(this);
-    this.getFanActionsByMatch = this.getFanActionsByMatch.bind(this);
-    this.getMyActions = this.getMyActions.bind(this);
-    this.getMatchVotes = this.getMatchVotes.bind(this);
-    this.createArticle = this.createArticle.bind(this);
-    this.getAllArticles = this.getAllArticles.bind(this);
-    this.getArticleById = this.getArticleById.bind(this);
-    this.updateArticle = this.updateArticle.bind(this);
-    this.deleteArticle = this.deleteArticle.bind(this);
   }
 
-  async createMatch(req, res, next) {
-    try { res.status(201).json(await this.fanService.createMatch(req.body)); } catch (e) { next(e); }
-  }
+  createMatch = asyncWrapper(async (req, res) => {
+    const match = await this.fanService.createMatch(req.body);
+    return created(res, match);
+  });
 
-  async getAllMatches(req, res, next) {
-    try { res.json(await this.fanService.getAllMatches(req.query.status)); } catch (e) { next(e); }
-  }
+  getAllMatches = asyncWrapper(async (req, res) => {
+    const matches = await this.fanService.getAllMatches(req.query.status);
+    return success(res, matches);
+  });
 
-  async getMatchById(req, res, next) {
-    try { res.json(await this.fanService.getMatchById(req.params.id)); } catch (e) { next(e); }
-  }
+  getMatchById = asyncWrapper(async (req, res) => {
+    const match = await this.fanService.getMatchById(req.params.id);
+    return success(res, match);
+  });
 
-  async updateMatch(req, res, next) {
-    try { res.json(await this.fanService.updateMatch(req.params.id, req.body)); } catch (e) { next(e); }
-  }
+  updateMatch = asyncWrapper(async (req, res) => {
+    const match = await this.fanService.updateMatch(req.params.id, req.body);
+    return success(res, match);
+  });
 
-  async deleteMatch(req, res, next) {
-    try { await this.fanService.deleteMatch(req.params.id); res.status(204).send(); } catch (e) { next(e); }
-  }
+  deleteMatch = asyncWrapper(async (req, res) => {
+    await this.fanService.deleteMatch(req.params.id);
+    return noContent(res);
+  });
 
-  async addMatchEvent(req, res, next) {
-    try { res.status(201).json(await this.fanService.addMatchEvent(req.body)); } catch (e) { next(e); }
-  }
+  addMatchEvent = asyncWrapper(async (req, res) => {
+    const event = await this.fanService.addMatchEvent(req.body);
+    return created(res, event);
+  });
 
-  async getMatchTimeline(req, res, next) {
-    try { res.json(await this.fanService.getMatchTimeline(req.params.matchId)); } catch (e) { next(e); }
-  }
+  getMatchTimeline = asyncWrapper(async (req, res) => {
+    const events = await this.fanService.getMatchTimeline(req.params.matchId);
+    return success(res, events);
+  });
 
-  async deleteMatchEvent(req, res, next) {
-    try { await this.fanService.deleteMatchEvent(req.params.id); res.status(204).send(); } catch (e) { next(e); }
-  }
+  updateMatchEvent = asyncWrapper(async (req, res) => {
+    const event = await this.fanService.updateMatchEvent(req.params.id, req.body);
+    return success(res, event);
+  });
 
-  async createFanAction(req, res, next) {
-    try { res.status(201).json(await this.fanService.createFanAction(req.body, req.user.id)); } catch (e) { next(e); }
-  }
+  deleteMatchEvent = asyncWrapper(async (req, res) => {
+    await this.fanService.deleteMatchEvent(req.params.id);
+    return noContent(res);
+  });
 
-  async getFanActionsByMatch(req, res, next) {
-    try { res.json(await this.fanService.getFanActionsByMatch(req.params.matchId)); } catch (e) { next(e); }
-  }
+  createFanAction = asyncWrapper(async (req, res) => {
+    const action = await this.fanService.createFanAction(req.body, req.user.id);
+    return created(res, action);
+  });
 
-  async getMyActions(req, res, next) {
-    try { res.json(await this.fanService.getMyActions(req.user.id)); } catch (e) { next(e); }
-  }
+  getFanActionsByMatch = asyncWrapper(async (req, res) => {
+    const actions = await this.fanService.getFanActionsByMatch(req.params.matchId);
+    return success(res, actions);
+  });
 
-  async getMatchVotes(req, res, next) {
-    try { res.json(await this.fanService.getMatchVotes(req.params.matchId)); } catch (e) { next(e); }
-  }
+  getMyActions = asyncWrapper(async (req, res) => {
+    const actions = await this.fanService.getMyActions(req.user.id);
+    return success(res, actions);
+  });
 
-  async createArticle(req, res, next) {
-    try { res.status(201).json(await this.fanService.createArticle(req.body, req.user.id)); } catch (e) { next(e); }
-  }
+  getMatchVotes = asyncWrapper(async (req, res) => {
+    const votes = await this.fanService.getMatchVotes(req.params.matchId);
+    return success(res, votes);
+  });
 
-  async getAllArticles(req, res, next) {
-    try { res.json(await this.fanService.getAllArticles(req.query.status)); } catch (e) { next(e); }
-  }
+  createArticle = asyncWrapper(async (req, res) => {
+    const article = await this.fanService.createArticle(req.body, req.user.id);
+    return created(res, article);
+  });
 
-  async getArticleById(req, res, next) {
-    try { res.json(await this.fanService.getArticleById(req.params.id)); } catch (e) { next(e); }
-  }
+  getAllArticles = asyncWrapper(async (req, res) => {
+    const articles = await this.fanService.getAllArticles(req.query.status);
+    return success(res, articles);
+  });
 
-  async updateArticle(req, res, next) {
-    try { res.json(await this.fanService.updateArticle(req.params.id, req.body)); } catch (e) { next(e); }
-  }
+  getArticleById = asyncWrapper(async (req, res) => {
+    const article = await this.fanService.getArticleById(req.params.id);
+    return success(res, article);
+  });
 
-  async deleteArticle(req, res, next) {
-    try { await this.fanService.deleteArticle(req.params.id); res.status(204).send(); } catch (e) { next(e); }
-  }
+  updateArticle = asyncWrapper(async (req, res) => {
+    const article = await this.fanService.updateArticle(req.params.id, req.body);
+    return success(res, article);
+  });
+
+  deleteArticle = asyncWrapper(async (req, res) => {
+    await this.fanService.deleteArticle(req.params.id);
+    return noContent(res);
+  });
 }

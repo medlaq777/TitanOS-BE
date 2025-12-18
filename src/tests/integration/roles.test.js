@@ -1,10 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { rolesGuard } from '../../middlewares/rolesGuard.js';
 import { errorHandler } from '../../middlewares/globalHandlers.js';
-import { ForbiddenError } from '../../common/errors.js';
-
 function buildApp(role) {
   const app = express();
   app.use(express.json());

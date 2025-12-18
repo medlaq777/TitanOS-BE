@@ -1,25 +1,18 @@
+import { asyncWrapper } from '../common/asyncWrapper.js';
+import { success } from '../common/response.js';
+
 export class AuditController {
   constructor(auditService) {
     this.auditService = auditService;
-    this.getAll = this.getAll.bind(this);
-    this.getByUser = this.getByUser.bind(this);
   }
 
-  async getAll(req, res, next) {
-    try {
-      const logs = await this.auditService.getAll();
-      res.json(logs);
-    } catch (err) {
-      next(err);
-    }
-  }
+  getAll = asyncWrapper(async (req, res) => {
+    const logs = await this.auditService.getAll(req.query);
+    return success(res, logs);
+  });
 
-  async getByUser(req, res, next) {
-    try {
-      const logs = await this.auditService.getByUser(req.params.userId);
-      res.json(logs);
-    } catch (err) {
-      next(err);
-    }
-  }
+  getByUser = asyncWrapper(async (req, res) => {
+    const logs = await this.auditService.getByUser(req.params.userId);
+    return success(res, logs);
+  });
 }

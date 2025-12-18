@@ -12,17 +12,9 @@ const authController = new AuthController(authService);
 
 const authRouter = Router();
 
-// POST /api/auth/register — create new user account
 authRouter.post("/register", authController.register);
-
-// POST /api/auth/login — validate credentials, issue accessToken + set refreshToken cookie
-authRouter.post("/login", auditAction('LOGIN', 'auth'), authController.login);
-
-// POST /api/auth/refresh — rotate refresh token and issue new accessToken
-// Reads refreshToken from HttpOnly cookie — no body required
+authRouter.post("/login", auditAction("LOGIN", "auth"), authController.login);
 authRouter.post("/refresh", authController.refresh);
-
-// POST /api/auth/logout — invalidate refresh token (requires valid access token)
-authRouter.post("/logout", authGuard, authController.logout);
+authRouter.post("/logout", authGuard, auditAction("LOGOUT", "auth"), authController.logout);
 
 export default authRouter;

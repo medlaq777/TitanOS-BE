@@ -28,12 +28,18 @@ export class MedicalService {
 
   createRecord(body) {
     const data = validate(createMedicalRecordSchema, body);
-    return this.medicalRepository.createRecord(data);
+    return this.medicalRepository.createRecord({
+      ...data,
+      recordedAt: new Date(data.recordedAt),
+    });
   }
 
   async updateRecord(id, body) {
     await this.getRecordById(id);
     const data = validate(updateMedicalRecordSchema, body);
+    if (data.recordedAt) {
+      data.recordedAt = new Date(data.recordedAt);
+    }
     return this.medicalRepository.updateRecord(id, data);
   }
 
@@ -43,7 +49,11 @@ export class MedicalService {
   }
 
   async getSignedUrl(id, objectKey) {
-    await this.getRecordById(id);
+    const record = await this.getRecordById(id);
+    const hasFile = record.fileUrls.some((url) => url.includes(objectKey));
+    if (!hasFile) {
+      throw new NotFoundError('File not found for this medical record');
+    }
     const bucket = process.env.MINIO_BUCKET || 'titanos';
     const url = await minioClient.presignedGetObject(bucket, objectKey, 15 * 60);
     return { url, expiresIn: 900 };

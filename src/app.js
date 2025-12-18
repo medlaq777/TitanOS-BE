@@ -2,10 +2,12 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import mongoSanitize from "express-mongo-sanitize";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 import { swaggerDocument } from "./config/swagger.js";
+import { success } from "./common/response.js";
 
 import authRouter from "./routers/auth.routes.js";
 import sportRouter from "./routers/sport.routes.js";
@@ -19,10 +21,8 @@ import { apiLimiter, authLimiter } from "./middlewares/rateLimiter.js";
 
 const app = express();
 
-// helmet: sets 14 security-related HTTP headers (CSP, HSTS, X-Frame-Options, etc.)
 app.use(helmet());
 
-// CORS: restrict origins, allow credentials (cookies), preflight on all /api/* routes
 const corsOptions = {
   origin: process.env.CORS_ORIGIN?.split(",") ?? ["http://localhost:3000"],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -39,6 +39,7 @@ app.use("/api/auth", authLimiter);
 app.use("/api/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(mongoSanitize());
 app.use(cookieParser());
 
 app.use("/api/auth", authRouter);
@@ -50,12 +51,10 @@ app.use("/api/fan", fanRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/audit", auditRouter);
 
-// Health check endpoint (TIT-144)
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
+  return success(res, { status: "ok", uptime: process.uptime() }, 200, "");
 });
 
-// Swagger API docs (TIT-140, TIT-141, TIT-142, TIT-143)
 if (process.env.NODE_ENV !== "production") {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 }

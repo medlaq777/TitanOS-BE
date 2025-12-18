@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { authGuard } from '../middlewares/authGuard.js';
 import { rolesGuard } from '../middlewares/rolesGuard.js';
+import { registerUuidParamValidators } from '../middlewares/uuidParams.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { auditAction } from '../middlewares/auditLog.js';
+import { analyzeWellnessSchema, manualInsightSchema } from '../schemas/ai.schemas.js';
 import { AIController } from '../controllers/ai.controller.js';
 import { AIService } from '../services/ai.service.js';
 import { AIRepository } from '../repositories/ai.repository.js';
@@ -15,30 +19,39 @@ const aiService = new AIService(aiRepository, wellnessRepository, memberReposito
 const aiController = new AIController(aiService);
 
 const aiRouter = Router();
+registerUuidParamValidators(aiRouter, 'memberId', 'id');
 
 aiRouter.use(authGuard);
 
-// Trigger AI analysis for a member — ADMIN and STAFF only
-aiRouter.post('/analyze', rolesGuard('ADMIN', 'STAFF'), aiController.analyzeWellness);
+aiRouter.post(
+  '/analyze',
+  rolesGuard('ADMIN', 'STAFF'),
+  validateRequest({ body: analyzeWellnessSchema }),
+  auditAction('AI_ANALYZE_WELLNESS', 'ai'),
+  aiController.analyzeWellness,
+);
+aiRouter.post(
+  '/manual',
+  rolesGuard('ADMIN', 'STAFF'),
+  validateRequest({ body: manualInsightSchema }),
+  auditAction('AI_MANUAL_INSIGHT', 'ai'),
+  aiController.createManualInsight,
+);
 
-// Get all insights for a member
 aiRouter.get(
   '/members/:memberId/insights',
   rolesGuard('ADMIN', 'STAFF'),
   aiController.getInsightsByMember,
 );
 
-// Get latest insight for a member
 aiRouter.get(
   '/members/:memberId/insights/latest',
   rolesGuard('ADMIN', 'STAFF'),
   aiController.getLatestInsight,
 );
 
-// Get a specific insight by ID
 aiRouter.get('/insights/:id', rolesGuard('ADMIN', 'STAFF'), aiController.getInsightById);
 
-// Delete an insight — ADMIN only
-aiRouter.delete('/insights/:id', rolesGuard('ADMIN'), aiController.deleteInsight);
+aiRouter.delete('/insights/:id', rolesGuard('ADMIN'), auditAction('AI_DELETE_INSIGHT', 'ai'), aiController.deleteInsight);
 
 export default aiRouter;

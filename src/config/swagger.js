@@ -37,7 +37,7 @@ export const swaggerDocument = {
                 properties: {
                   email: { type: 'string', format: 'email' },
                   password: { type: 'string', minLength: 8 },
-                  role: { type: 'string', enum: ['ADMIN', 'STAFF', 'PLAYER', 'FAN'] },
+                  role: { type: 'string', enum: ['PLAYER', 'FAN'], description: 'Self-service registration; ADMIN/STAFF are assigned separately' },
                 },
               },
             },
@@ -104,12 +104,18 @@ export const swaggerDocument = {
     '/ai/analyze': {
       post: { tags: ['AI'], summary: 'Trigger AI wellness analysis for a member (ADMIN/STAFF)', responses: { 201: { description: 'AIInsight created' } } },
     },
+    '/ai/manual': {
+      post: { tags: ['AI'], summary: 'Create manual AI insight fallback (ADMIN/STAFF)', responses: { 201: { description: 'AIInsight created manually' } } },
+    },
     '/media/upload': {
       post: { tags: ['Media'], summary: 'Upload a file to MinIO (multipart/form-data)', responses: { 201: { description: 'Media uploaded and metadata stored' } } },
     },
     '/fan/matches': {
       get: { tags: ['Fan'], summary: 'List all matches', responses: { 200: { description: 'Array of matches' } } },
       post: { tags: ['Fan'], summary: 'Create match (ADMIN/STAFF)', responses: { 201: { description: 'Match created' } } },
+    },
+    '/fan/events/{id}': {
+      patch: { tags: ['Fan'], summary: 'Update match event (ADMIN/STAFF)', responses: { 200: { description: 'Event updated' } } },
     },
     '/fan/actions': {
       post: { tags: ['Fan'], summary: 'Submit fan action (vote, ticket, like, share)', responses: { 201: { description: 'Action recorded' } } },

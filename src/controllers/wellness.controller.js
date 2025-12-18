@@ -32,7 +32,7 @@ export class WellnessController {
   });
 
   getRecentForms = asyncWrapper(async (req, res) => {
-    const days = parseInt(req.query.days) || 7;
+    const { days } = req.query;
     const forms = await this.wellnessService.getRecentForms(req.params.memberId, days);
     return success(res, forms);
   });

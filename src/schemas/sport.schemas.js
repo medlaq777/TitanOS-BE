@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MemberType, Position } from "@prisma/client";
 
 export const createTeamSchema = z.object({
   name: z.string().min(1),
@@ -12,13 +13,17 @@ export const createMemberSchema = z.object({
   userId: z.string().uuid(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  position: z.string().optional(),
+  position: z.nativeEnum(Position).optional(),
   jerseyNumber: z.number().int().positive().optional(),
-  type: z.enum(["PLAYER", "COACH", "STAFF"]).default("PLAYER"),
+  type: z.nativeEnum(MemberType).default(MemberType.PLAYER),
   teamId: z.string().uuid().optional(),
 });
 
 export const updateMemberSchema = createMemberSchema.omit({ userId: true }).partial();
+
+export const assignMemberTeamSchema = z.object({
+  teamId: z.string().uuid(),
+});
 
 export const createSessionSchema = z.object({
   title: z.string().min(1),
@@ -43,3 +48,7 @@ export const createPerformanceSchema = z.object({
 });
 
 export const updatePerformanceSchema = createPerformanceSchema.omit({ memberId: true }).partial();
+
+export const addSessionParticipantSchema = z.object({
+  memberId: z.string().uuid(),
+});

@@ -4,7 +4,6 @@ import { validate } from '../common/validate.js';
 import { uploadMediaSchema, presignedUrlSchema } from '../schemas/media.schemas.js';
 import minioClient, { MEDIA_BUCKET, ensureBucket } from '../config/minio.js';
 
-// TIT-119: determine MediaType from MIME type
 function resolveMediaType(mimeType, bodyType) {
   if (bodyType) return bodyType;
   if (mimeType.startsWith('image/')) return 'IMAGE';
@@ -17,7 +16,6 @@ export class MediaService {
     this.mediaRepository = mediaRepository;
   }
 
-  // TIT-118 + TIT-119: upload file to MinIO, TIT-120: store metadata in DB
   async uploadFile(file, body, userId) {
     const { type, access, teamId } = validate(uploadMediaSchema, {
       ...body,
@@ -26,7 +24,7 @@ export class MediaService {
 
     await ensureBucket();
 
-    const ext = file.originalname.split('.').pop();
+    const ext = file.originalname.includes('.') ? file.originalname.split('.').pop() : 'bin';
     const objectKey = `${userId}/${uuidv4()}.${ext}`;
 
     await minioClient.putObject(MEDIA_BUCKET, objectKey, file.buffer, file.size, {
@@ -51,12 +49,10 @@ export class MediaService {
     return media;
   }
 
-  // TIT-121 + TIT-122: generate presigned URL with 15-min default expiry
   async getPresignedUrl(id, query, requesterId, requesterRole) {
     const media = await this.mediaRepository.findById(id);
     if (!media) throw new NotFoundError('Media not found');
 
-    // TIT-123: restrict access by role / ownership
     this._checkAccess(media, requesterId, requesterRole);
 
     const { expirySeconds } = validate(presignedUrlSchema, query);
@@ -100,7 +96,6 @@ export class MediaService {
     return this.mediaRepository.deleteById(id);
   }
 
-  // TIT-123: role-based access enforcement
   _checkAccess(media, requesterId, requesterRole) {
     if (requesterRole === 'ADMIN' || requesterRole === 'STAFF') return;
     if (media.access === 'PUBLIC') return;

@@ -3,7 +3,6 @@ export class FanRepository {
     this.prisma = prisma;
   }
 
-  // --- Match ---
   createMatch(data) {
     return this.prisma.match.create({
       data,
@@ -53,9 +52,20 @@ export class FanRepository {
     return this.prisma.match.delete({ where: { id } });
   }
 
-  // --- MatchEvent (timeline) ---
   createMatchEvent(data) {
     return this.prisma.matchEvent.create({
+      data,
+      include: { member: { select: { id: true, firstName: true, lastName: true } } },
+    });
+  }
+
+  findMatchEventById(id) {
+    return this.prisma.matchEvent.findUnique({ where: { id } });
+  }
+
+  updateMatchEvent(id, data) {
+    return this.prisma.matchEvent.update({
+      where: { id },
       data,
       include: { member: { select: { id: true, firstName: true, lastName: true } } },
     });
@@ -73,7 +83,6 @@ export class FanRepository {
     return this.prisma.matchEvent.delete({ where: { id } });
   }
 
-  // --- FanAction ---
   createFanAction(data) {
     return this.prisma.fanAction.create({
       data,
@@ -99,7 +108,6 @@ export class FanRepository {
     return this.prisma.fanAction.count({ where: { matchId, type: 'VOTE' } });
   }
 
-  // --- Article ---
   createArticle(data) {
     return this.prisma.article.create({
       data,

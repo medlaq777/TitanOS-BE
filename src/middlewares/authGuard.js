@@ -1,15 +1,10 @@
 import { verifyAccessToken } from "../common/jwt.js";
+import { UnauthorizedError } from "../common/errors.js";
 
-/**
- * AuthGuard middleware — intercepts every request to protected routes.
- * Expects: Authorization: Bearer <accessToken>
- * On success: attaches req.user = { id, email, role }
- * On failure: passes UnauthorizedError to the global error handler
- */
 export function authGuard(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
-    return next(new Error("Missing Bearer token"));
+    return next(new UnauthorizedError("Missing or invalid Authorization header"));
   }
   const token = authHeader.slice(7);
   try {

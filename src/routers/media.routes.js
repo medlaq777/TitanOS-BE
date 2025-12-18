@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { authGuard } from '../middlewares/authGuard.js';
 import { rolesGuard } from '../middlewares/rolesGuard.js';
+import { registerUuidParamValidators } from '../middlewares/uuidParams.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { auditAction } from '../middlewares/auditLog.js';
+import { presignedUrlSchema } from '../schemas/media.schemas.js';
 import { MediaController } from '../controllers/media.controller.js';
 import { MediaService } from '../services/media.service.js';
 import { MediaRepository } from '../repositories/media.repository.js';
@@ -12,30 +16,30 @@ const mediaService = new MediaService(mediaRepository);
 const mediaController = new MediaController(mediaService);
 
 const mediaRouter = Router();
+registerUuidParamValidators(mediaRouter, 'id', 'teamId');
 
 mediaRouter.use(authGuard);
 
-// TIT-119: Upload a file (video, image, document) — all authenticated roles
 mediaRouter.post(
   '/upload',
   rolesGuard('ADMIN', 'STAFF', 'PLAYER'),
   upload.single('file'),
+  auditAction('UPLOAD_MEDIA', 'media'),
   mediaController.uploadFile,
 );
 
-// List media — own files or all (ADMIN/STAFF)
 mediaRouter.get('/', mediaController.getAllMedia);
 
-// Get media by team — ADMIN and STAFF only
 mediaRouter.get('/team/:teamId', rolesGuard('ADMIN', 'STAFF'), mediaController.getMediaByTeam);
 
-// Get media metadata by ID
 mediaRouter.get('/:id', mediaController.getMediaById);
 
-// TIT-121 + TIT-122: Generate presigned URL (15 min default) — TIT-123: access enforced in service
-mediaRouter.get('/:id/presigned-url', mediaController.getPresignedUrl);
+mediaRouter.get(
+  '/:id/presigned-url',
+  validateRequest({ query: presignedUrlSchema }),
+  mediaController.getPresignedUrl,
+);
 
-// Delete media — owner or ADMIN
-mediaRouter.delete('/:id', mediaController.deleteMedia);
+mediaRouter.delete('/:id', auditAction('DELETE_MEDIA', 'media'), mediaController.deleteMedia);
 
 export default mediaRouter;

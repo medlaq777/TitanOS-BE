@@ -4,6 +4,7 @@ import {
   createMatchSchema,
   updateMatchSchema,
   createMatchEventSchema,
+  updateMatchEventSchema,
   createFanActionSchema,
   createArticleSchema,
   updateArticleSchema,
@@ -13,8 +14,6 @@ export class FanService {
   constructor(fanRepository) {
     this.fanRepository = fanRepository;
   }
-
-  // --- Match Management (TIT-124, TIT-125, TIT-126) ---
 
   createMatch(body) {
     const data = validate(createMatchSchema, body);
@@ -43,8 +42,6 @@ export class FanService {
     return this.fanRepository.deleteMatch(id);
   }
 
-  // --- Match Events / Timeline (TIT-128) ---
-
   async addMatchEvent(body) {
     const data = validate(createMatchEventSchema, body);
     const match = await this.fanRepository.findMatchById(data.matchId);
@@ -52,22 +49,31 @@ export class FanService {
     return this.fanRepository.createMatchEvent(data);
   }
 
-  getMatchTimeline(matchId) {
+  async getMatchTimeline(matchId) {
+    await this.getMatchById(matchId);
     return this.fanRepository.findEventsByMatch(matchId);
   }
 
-  deleteMatchEvent(id) {
-    return this.fanRepository.deleteMatchEvent(id);
+  async updateMatchEvent(id, body) {
+    const existing = await this.fanRepository.findMatchEventById(id);
+    if (!existing) throw new NotFoundError('Match event not found');
+    const data = validate(updateMatchEventSchema, body);
+    return this.fanRepository.updateMatchEvent(id, data);
   }
 
-  // --- Fan Actions (TIT-130, TIT-131, TIT-132) ---
+  async deleteMatchEvent(id) {
+    const event = await this.fanRepository.findMatchEventById(id);
+    if (!event) throw new NotFoundError('Match event not found');
+    return this.fanRepository.deleteMatchEvent(id);
+  }
 
   createFanAction(body, userId) {
     const data = validate(createFanActionSchema, body);
     return this.fanRepository.createFanAction({ ...data, userId });
   }
 
-  getFanActionsByMatch(matchId) {
+  async getFanActionsByMatch(matchId) {
+    await this.getMatchById(matchId);
     return this.fanRepository.findFanActionsByMatch(matchId);
   }
 
@@ -76,11 +82,10 @@ export class FanService {
   }
 
   async getMatchVotes(matchId) {
+    await this.getMatchById(matchId);
     const count = await this.fanRepository.countVotesByMatch(matchId);
     return { matchId, votes: count };
   }
-
-  // --- Articles ---
 
   createArticle(body, authorId) {
     const data = validate(createArticleSchema, body);

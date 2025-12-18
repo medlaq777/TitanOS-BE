@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// --- Match schemas ---
 export const createMatchSchema = z.object({
   homeTeamId: z.string().uuid(),
   awayTeamId: z.string().uuid(),
@@ -16,7 +15,6 @@ export const updateMatchSchema = z.object({
   venue: z.string().optional(),
 });
 
-// --- MatchEvent schemas ---
 export const createMatchEventSchema = z.object({
   matchId: z.string().uuid(),
   memberId: z.string().uuid().optional(),
@@ -25,14 +23,21 @@ export const createMatchEventSchema = z.object({
   detail: z.string().optional(),
 });
 
-// --- FanAction schemas ---
+export const updateMatchEventSchema = z
+  .object({
+    memberId: z.union([z.string().uuid(), z.null()]).optional(),
+    type: z.enum(['GOAL', 'YELLOW_CARD', 'RED_CARD', 'SUBSTITUTION', 'INJURY']).optional(),
+    minute: z.number().int().min(1).max(120).optional(),
+    detail: z.union([z.string(), z.null()]).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+
 export const createFanActionSchema = z.object({
   matchId: z.string().uuid().optional(),
   type: z.enum(['VOTE', 'TICKET_PURCHASE', 'LIKE', 'SHARE']),
   payload: z.record(z.unknown()).optional(),
 });
 
-// --- Article schemas ---
 export const createArticleSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),

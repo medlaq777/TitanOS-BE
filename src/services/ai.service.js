@@ -1,12 +1,8 @@
 import OpenAI from 'openai';
 import { NotFoundError, ValidationError } from '../common/errors.js';
 import { validate } from '../common/validate.js';
-import { analyzeWellnessSchema } from '../schemas/ai.schemas.js';
-import {
-  formatWellnessPrompt,
-  computeRiskLevel,
-  generateRuleBasedInsight,
-} from './ai.prompt.js';
+import { analyzeWellnessSchema, manualInsightSchema } from '../schemas/ai.schemas.js';
+import { formatWellnessPrompt, generateRuleBasedInsight } from './ai.prompt.js';
 
 function buildSummary(forms) {
   const count = forms.length;
@@ -38,7 +34,6 @@ export class AIService {
       : null;
   }
 
-  // TIT-115: Integrate OpenAI / LangChain
   async callOpenAI(prompt) {
     const response = await this.openai.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
@@ -60,7 +55,6 @@ export class AIService {
     return { riskLevel, summary, recommendation };
   }
 
-  // TIT-116: Generate risk score (AI or rule-based)
   async generateInsight(member, summary, days) {
     if (this.openai) {
       try {
@@ -73,7 +67,6 @@ export class AIService {
     return generateRuleBasedInsight(member, summary, days);
   }
 
-  // TIT-117: Store AIInsight result + full analyze flow
   async analyzeWellness(body) {
     const { memberId, days } = validate(analyzeWellnessSchema, body);
 
@@ -102,6 +95,21 @@ export class AIService {
     });
 
     return insight;
+  }
+
+  async createManualInsight(body) {
+    const { memberId, riskLevel, summary, recommendation, dataWindow } = validate(manualInsightSchema, body);
+
+    const member = await this.memberRepository.findById(memberId);
+    if (!member) throw new NotFoundError('Member not found');
+
+    return this.aiRepository.createInsight({
+      memberId,
+      riskLevel,
+      summary,
+      recommendation,
+      dataWindow,
+    });
   }
 
   async getInsightsByMember(memberId) {

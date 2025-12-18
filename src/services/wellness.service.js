@@ -25,6 +25,9 @@ export class WellnessService {
   async updateForm(id, body) {
     await this.getFormById(id);
     const data = validate(updateWellnessFormSchema, body);
+    if (data.date) {
+      data.date = new Date(data.date);
+    }
     return this.wellnessRepository.updateForm(id, data);
   }
 

@@ -32,7 +32,8 @@ export class SportController {
   });
 
   getAllMembers = asyncWrapper(async (req, res) => {
-    const members = await this.sportService.getAllMembers(req.query.teamId);
+    const { teamId } = req.query;
+    const members = await this.sportService.getAllMembers(teamId);
     return success(res, members);
   });
 

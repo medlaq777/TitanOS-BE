@@ -22,6 +22,15 @@ describe('registerSchema', () => {
     const result = registerSchema.safeParse({ email: 'a@b.com', password: 'password123', role: 'SUPERUSER' });
     expect(result.success).toBe(false);
   });
+
+  it('rejects privileged roles on self-registration', () => {
+    expect(registerSchema.safeParse({ email: 'a@b.com', password: 'password123', role: 'ADMIN' }).success).toBe(
+      false,
+    );
+    expect(registerSchema.safeParse({ email: 'a@b.com', password: 'password123', role: 'STAFF' }).success).toBe(
+      false,
+    );
+  });
 });
 
 describe('loginSchema', () => {

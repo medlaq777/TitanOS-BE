@@ -3,8 +3,10 @@ import { validate } from '../common/validate.js';
 import {
   createTeamSchema, updateTeamSchema,
   createMemberSchema, updateMemberSchema,
+  assignMemberTeamSchema,
   createSessionSchema, updateSessionSchema,
   createPerformanceSchema, updatePerformanceSchema,
+  addSessionParticipantSchema,
 } from '../schemas/sport.schemas.js';
 
 export class SportService {
@@ -65,9 +67,10 @@ export class SportService {
   }
 
   async linkMemberToTeam(memberId, teamId) {
+    const { teamId: validatedTeamId } = validate(assignMemberTeamSchema, { teamId });
     await this.getMemberById(memberId);
-    await this.getTeamById(teamId);
-    return this.sportRepository.updateMember(memberId, { teamId });
+    await this.getTeamById(validatedTeamId);
+    return this.sportRepository.updateMember(memberId, { teamId: validatedTeamId });
   }
 
   async unlinkMemberFromTeam(memberId) {
@@ -87,9 +90,15 @@ export class SportService {
 
   async createSession(body) {
     const { participantIds, ...rest } = validate(createSessionSchema, body);
-    const session = await this.sportRepository.createSession(rest);
+    const session = await this.sportRepository.createSession({
+      ...rest,
+      date: new Date(rest.date),
+    });
     if (participantIds?.length) {
-      await Promise.all(participantIds.map((memberId) => this.sportRepository.addParticipant(session.id, memberId)));
+      await Promise.all(participantIds.map(async (memberId) => {
+        await this.getMemberById(memberId);
+        return this.sportRepository.addParticipant(session.id, memberId);
+      }));
     }
     return this.sportRepository.findSessionById(session.id);
   }
@@ -97,6 +106,9 @@ export class SportService {
   async updateSession(id, body) {
     await this.getSessionById(id);
     const data = validate(updateSessionSchema, body);
+    if (data.date) {
+      data.date = new Date(data.date);
+    }
     return this.sportRepository.updateSession(id, data);
   }
 
@@ -107,14 +119,19 @@ export class SportService {
 
   async addParticipant(sessionId, memberId) {
     await this.getSessionById(sessionId);
-    return this.sportRepository.addParticipant(sessionId, memberId);
+    const { memberId: validatedMemberId } = validate(addSessionParticipantSchema, { memberId });
+    await this.getMemberById(validatedMemberId);
+    return this.sportRepository.addParticipant(sessionId, validatedMemberId);
   }
 
   async removeParticipant(sessionId, memberId) {
+    await this.getSessionById(sessionId);
+    await this.getMemberById(memberId);
     return this.sportRepository.removeParticipant(sessionId, memberId);
   }
 
-  getPerformancesByMember(memberId) {
+  async getPerformancesByMember(memberId) {
+    await this.getMemberById(memberId);
     return this.sportRepository.findPerformancesByMember(memberId);
   }
 
@@ -126,12 +143,18 @@ export class SportService {
 
   createPerformance(body) {
     const data = validate(createPerformanceSchema, body);
-    return this.sportRepository.createPerformance(data);
+    return this.sportRepository.createPerformance({
+      ...data,
+      recordedAt: new Date(data.recordedAt),
+    });
   }
 
   async updatePerformance(id, body) {
     await this.getPerformanceById(id);
     const data = validate(updatePerformanceSchema, body);
+    if (data.recordedAt) {
+      data.recordedAt = new Date(data.recordedAt);
+    }
     return this.sportRepository.updatePerformance(id, data);
   }
 
