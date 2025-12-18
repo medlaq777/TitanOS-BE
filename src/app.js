@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import authRouter from "./routers/auth.routes.js";
 import sportRouter from "./routers/sport.routes.js";
 import medicalRouter from "./routers/medical.routes.js";
+import wellnessRouter from "./routers/wellness.routes.js";
 import mediaRouter from "./routers/media.routes.js";
 import fanRouter from "./routers/fan.routes.js";
 
@@ -34,6 +35,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRouter);
 app.use("/api/sport", sportRouter);
 app.use("/api/medical", medicalRouter);
+app.use("/api/wellness", wellnessRouter);
 app.use("/api/media", mediaRouter);
 app.use("/api/fan", fanRouter);
 
