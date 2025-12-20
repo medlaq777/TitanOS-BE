@@ -11,6 +11,7 @@ import medicalRouter from "./routers/medical.routes.js";
 import wellnessRouter from "./routers/wellness.routes.js";
 import mediaRouter from "./routers/media.routes.js";
 import fanRouter from "./routers/fan.routes.js";
+import aiRouter from "./routers/ai.routes.js";
 
 const app = express();
 
@@ -38,5 +39,6 @@ app.use("/api/medical", medicalRouter);
 app.use("/api/wellness", wellnessRouter);
 app.use("/api/media", mediaRouter);
 app.use("/api/fan", fanRouter);
+app.use("/api/ai", aiRouter);
 
 export default app;
