@@ -12,6 +12,8 @@ import wellnessRouter from "./routers/wellness.routes.js";
 import mediaRouter from "./routers/media.routes.js";
 import fanRouter from "./routers/fan.routes.js";
 import aiRouter from "./routers/ai.routes.js";
+import auditRouter from "./routers/audit.routes.js";
+import { apiLimiter, authLimiter } from "./middlewares/rateLimiter.js";
 
 const app = express();
 
@@ -30,6 +32,8 @@ app.use(cors(corsOptions));
 app.options("/api/*", cors(corsOptions));
 app.use(morgan("dev"));
 app.disable("x-powered-by");
+app.use("/api/", apiLimiter);
+app.use("/api/auth", authLimiter);
 app.use("/api/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -42,5 +46,6 @@ app.use("/api/wellness", wellnessRouter);
 app.use("/api/media", mediaRouter);
 app.use("/api/fan", fanRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/audit", auditRouter);
 
 export default app;
