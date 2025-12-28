@@ -3,6 +3,7 @@ import { AuthController } from "../controllers/auth.controller.js";
 import { AuthService } from "../services/auth.service.js";
 import { AuthRepository } from "../repositories/auth.repository.js";
 import { authGuard } from "../middlewares/authGuard.js";
+import { auditAction } from "../middlewares/auditLog.js";
 import prisma from "../config/db.js";
 
 const authRepository = new AuthRepository(prisma);
@@ -15,7 +16,7 @@ const authRouter = Router();
 authRouter.post("/register", authController.register);
 
 // POST /api/auth/login — validate credentials, issue accessToken + set refreshToken cookie
-authRouter.post("/login", authController.login);
+authRouter.post("/login", auditAction('LOGIN', 'auth'), authController.login);
 
 // POST /api/auth/refresh — rotate refresh token and issue new accessToken
 // Reads refreshToken from HttpOnly cookie — no body required
