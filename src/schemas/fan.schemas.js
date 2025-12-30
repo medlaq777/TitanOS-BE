@@ -32,11 +32,54 @@ export const updateMatchEventSchema = z
   })
   .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
 
-export const createFanActionSchema = z.object({
-  matchId: z.string().uuid().optional(),
-  type: z.enum(['VOTE', 'TICKET_PURCHASE', 'LIKE', 'SHARE']),
-  payload: z.record(z.unknown()).optional(),
-});
+export const createFanActionSchema = z
+  .object({
+    matchId: z.string().uuid().optional(),
+    type: z.enum(['VOTE', 'TICKET_PURCHASE', 'LIKE', 'SHARE']),
+    payload: z.record(z.unknown()).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === 'VOTE') {
+      if (!data.matchId) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'VOTE requires matchId', path: ['matchId'] });
+        return;
+      }
+      const p = data.payload ?? {};
+      if (p.voteType !== 'MAN_OF_THE_MATCH') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'payload.voteType must be MAN_OF_THE_MATCH',
+          path: ['payload', 'voteType'],
+        });
+      }
+      const cand = p.candidateMemberId;
+      if (typeof cand !== 'string' || !z.string().uuid().safeParse(cand).success) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'payload.candidateMemberId must be a UUID (player voted for)',
+          path: ['payload', 'candidateMemberId'],
+        });
+      }
+    }
+    if (data.type === 'TICKET_PURCHASE') {
+      const p = data.payload ?? {};
+      const ref = p.ticketRef;
+      if (typeof ref !== 'string' || ref.trim().length < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'payload.ticketRef is required (QR decode or reference id)',
+          path: ['payload', 'ticketRef'],
+        });
+      }
+      if (p.qrPayload != null && typeof p.qrPayload !== 'string' && typeof p.qrPayload !== 'object') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'payload.qrPayload must be string or object when provided',
+          path: ['payload', 'qrPayload'],
+        });
+      }
+    }
+  });
 
 export const createArticleSchema = z.object({
   title: z.string().min(1),

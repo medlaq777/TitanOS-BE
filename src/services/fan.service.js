@@ -1,5 +1,6 @@
 import { NotFoundError } from '../common/errors.js';
 import { validate } from '../common/validate.js';
+import { broadcastToMatch } from '../realtime/matchHub.js';
 import {
   createMatchSchema,
   updateMatchSchema,
@@ -34,7 +35,9 @@ export class FanService {
     await this.getMatchById(id);
     const data = validate(updateMatchSchema, body);
     if (data.scheduledAt) data.scheduledAt = new Date(data.scheduledAt);
-    return this.fanRepository.updateMatch(id, data);
+    const updated = await this.fanRepository.updateMatch(id, data);
+    broadcastToMatch(id, { type: 'match_update', data: updated });
+    return updated;
   }
 
   async deleteMatch(id) {
@@ -46,7 +49,9 @@ export class FanService {
     const data = validate(createMatchEventSchema, body);
     const match = await this.fanRepository.findMatchById(data.matchId);
     if (!match) throw new NotFoundError('Match not found');
-    return this.fanRepository.createMatchEvent(data);
+    const created = await this.fanRepository.createMatchEvent(data);
+    broadcastToMatch(data.matchId, { type: 'match_event_created', data: created });
+    return created;
   }
 
   async getMatchTimeline(matchId) {
@@ -58,13 +63,16 @@ export class FanService {
     const existing = await this.fanRepository.findMatchEventById(id);
     if (!existing) throw new NotFoundError('Match event not found');
     const data = validate(updateMatchEventSchema, body);
-    return this.fanRepository.updateMatchEvent(id, data);
+    const updated = await this.fanRepository.updateMatchEvent(id, data);
+    broadcastToMatch(existing.matchId, { type: 'match_event_updated', data: updated });
+    return updated;
   }
 
   async deleteMatchEvent(id) {
     const event = await this.fanRepository.findMatchEventById(id);
     if (!event) throw new NotFoundError('Match event not found');
-    return this.fanRepository.deleteMatchEvent(id);
+    await this.fanRepository.deleteMatchEvent(id);
+    broadcastToMatch(event.matchId, { type: 'match_event_deleted', eventId: id });
   }
 
   createFanAction(body, userId) {

@@ -3,7 +3,10 @@ export const swaggerDocument = {
   info: {
     title: 'TitanOs Backend API',
     version: '1.0.0',
-    description: 'Sports management platform — REST API documentation',
+    description:
+      'Sports management platform — REST API documentation. ' +
+      'Live match updates: WebSocket `ws://<host>:<port>/ws?token=<JWT>` then send JSON `{"action":"subscribe","matchId":"<uuid>"}`. ' +
+      'Broadcasts mirror score and timeline changes from the Fan module.',
   },
   servers: [{ url: '/api', description: 'API base path' }],
   components: {
@@ -118,7 +121,15 @@ export const swaggerDocument = {
       patch: { tags: ['Fan'], summary: 'Update match event (ADMIN/STAFF)', responses: { 200: { description: 'Event updated' } } },
     },
     '/fan/actions': {
-      post: { tags: ['Fan'], summary: 'Submit fan action (vote, ticket, like, share)', responses: { 201: { description: 'Action recorded' } } },
+      post: {
+        tags: ['Fan'],
+        summary: 'Submit fan action',
+        description:
+          'VOTE: requires matchId, payload.voteType=MAN_OF_THE_MATCH, payload.candidateMemberId (UUID). ' +
+          'TICKET_PURCHASE: requires payload.ticketRef; optional payload.qrPayload (string or object). ' +
+          'LIKE / SHARE: optional matchId and payload.',
+        responses: { 201: { description: 'Action recorded' } },
+      },
     },
     '/audit': {
       get: { tags: ['Audit'], summary: 'List all audit logs (ADMIN only)', responses: { 200: { description: 'Array of audit logs' } } },
