@@ -4,6 +4,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import swaggerUi from "swagger-ui-express";
+import { swaggerDocument } from "./config/swagger.js";
 
 import authRouter from "./routers/auth.routes.js";
 import sportRouter from "./routers/sport.routes.js";
@@ -47,5 +49,15 @@ app.use("/api/media", mediaRouter);
 app.use("/api/fan", fanRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/audit", auditRouter);
+
+// Health check endpoint (TIT-144)
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
+// Swagger API docs (TIT-140, TIT-141, TIT-142, TIT-143)
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
 
 export default app;
