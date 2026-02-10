@@ -1,16 +1,19 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine
+
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
-# Install dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
-# Copy source
-COPY . .
+COPY prisma ./prisma
+COPY src ./src
 
-# Generate Prisma client
 RUN npx prisma generate
+RUN npm prune --production
 
+ENV NODE_ENV=production
 EXPOSE 3001
 
 CMD ["node", "src/server.js"]
