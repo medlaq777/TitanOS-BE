@@ -1,15 +1,21 @@
-import { PrismaClient } from "@prisma/client";
+import mongoose from "mongoose";
+import Config from "./config.js";
 
-function createPrismaClient() {
-  return new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-  });
+class Database {
+  connected = false;
+
+  async connect() {
+    if (this.connected) return;
+    if (!Config.mongoUri) throw new Error("MongoDB URI not provided in config");
+    try {
+      await mongoose.connect(Config.mongoUri);
+      this.connected = true;
+      console.log("MongoDB connected");
+    } catch (err) {
+      console.error("mongoDB connection error:", err);
+      throw err;
+    }
+  }
 }
 
-const prisma = globalThis.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalThis.prisma = prisma;
-}
-
-export default prisma;
+export default new Database();

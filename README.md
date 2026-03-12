@@ -3,30 +3,26 @@
 
 ![TitanOs Logo](logo.png)
 
-Sports management platform REST API built with **Node.js**, **Express**, **Prisma ORM**, and **PostgreSQL**. All HTTP routes are served under **`/api/v1`**. Features include structured JSON logging for Kubernetes, request correlation IDs, locale-aware error codes, idempotent writes, cursor-based list pagination, multi-role authentication, athlete tracking, medical records, wellness analysis with AI, MinIO file storage, fan engagement with live match WebSockets, and full audit logging.
+Sports management REST API built with **Node.js**, **Express**, **Mongoose** (MongoDB), and **Zod**. All HTTP routes are served under **`/api`**. Responses use a fixed shape (`success`, `data`, `message`; errors add `error.code`, and Zod failures may include `error.issues`). Features include offset-based pagination (`limit` / `offset`), JWT + HttpOnly refresh cookies, role guards, teams/sessions/performance, medical records, wellness forms, MinIO media, and fan features (matches, events, actions, articles).
 
 ---
 
 ## Table of Contents
 
 - [Tech Stack](#tech-stack)
-- [API versioning & conventions](#api-versioning--conventions)
+- [API conventions](#api-conventions)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
-- [Database Schema](#database-schema)
+- [Database (MongoDB / Mongoose)](#database-mongodb--mongoose)
 - [API Endpoints](#api-endpoints)
 - [Authentication & Authorization](#authentication--authorization)
 - [Environment Variables](#environment-variables)
 - [Getting Started](#getting-started)
 - [Docker Setup](#docker-setup)
-- [Running Tests](#running-tests)
 - [API Documentation](#api-documentation)
 - [Observability & operations](#observability--operations)
-- [Real-time (WebSocket)](#real-time-websocket)
 - [Security](#security)
 - [File Storage](#file-storage)
-- [AI Insights](#ai-insights)
-- [Audit Logging](#audit-logging)
 
 ---
 
@@ -34,113 +30,83 @@ Sports management platform REST API built with **Node.js**, **Express**, **Prism
 
 | Layer | Technology |
 | --- | --- |
-| Runtime | Node.js 20 (ES Modules) |
+| Runtime | Node.js 20+ (ES modules) |
 | Framework | Express 4.18 |
-| ORM | Prisma 5.7 |
-| Database | PostgreSQL 16 |
-| Auth | JWT (jsonwebtoken 9) + bcryptjs |
-| Validation | Zod 3.22 |
-| File Storage | MinIO (S3-compatible) |
-| AI | OpenAI API (gpt-4o-mini) with rule-based fallback |
-| Testing | Vitest 4 + Supertest |
-| Documentation | Swagger UI (OpenAPI 3.0) |
-| Logging | Pino (JSON, `LOG_LEVEL`) |
-| Real-time | WebSocket (`ws`) for match updates |
-| Security | Helmet + express-rate-limit + CORS |
-| Containerization | Docker + Docker Compose |
+| ODM | Mongoose 8 (MongoDB) |
+| Auth | JWT (access) + HttpOnly refresh cookie; bcryptjs |
+| Validation | Zod 4 (controllers; `ValidationError.fromZod` for structured issues) |
+| File Storage | MinIO (S3-compatible); opaque `objectKey` via `MEDIA_OBJECT_KEY_SECRET` |
+| Documentation | Swagger UI (OpenAPI 3.0, dev only) |
+| Security | Helmet, express-rate-limit, CORS, express-mongo-sanitize |
+| Containerization | Docker + Docker Compose (API + MongoDB + MinIO) |
 
 ---
 
-## API versioning & conventions
+## API conventions
 
-- **Base path:** every REST route is under **`/api/v1`** (for example `GET /api/v1/sport/teams`).
-- **Resource IDs:** path and query IDs use **UUID v4** (PostgreSQL). MongoDB ObjectId is not used; invalid IDs return **400**.
-- **Pagination:** list endpoints accept `cursor` (opaque) and `limit` (1–100, default **20**). Responses include `meta.nextCursor`, `meta.hasMore`, and `meta.limit`.
-- **Idempotency:** on **POST**, **PUT**, and **PATCH**, send **`Idempotency-Key`** (8–256 characters). The first successful response is stored; replays return the same body with header **`Idempotency-Replayed: true`**. Reusing the key with a different body returns **409**.
-- **Tracing:** optional **`X-Request-ID`** or **`X-Correlation-ID`**; the server echoes **`X-Request-ID`** and includes `requestId` in JSON bodies.
-- **Locales:** **`Accept-Language`** (e.g. `fr`) selects translated text for standard `error.code` values where applicable.
+- **Base path:** every REST route is under **`/api`** (for example `GET /api/sport/teams`).
+- **Resource IDs:** path and query IDs are **MongoDB ObjectIds** (24 hex characters) unless documented otherwise. Invalid IDs typically surface as **400** (Zod or cast errors).
+- **Pagination:** list endpoints accept **`limit`** (1–100, default **10**) and **`offset`** (≥ 0, default **0**). Paginated responses include `meta.hasMore`, `meta.limit`, and `meta.offset`.
 
 ---
 
 ## Architecture
 
-The backend follows a strict **layered architecture** with dependency injection:
+The backend follows a **layered architecture** like a classic Express API: each repository, service, and controller file exports a **singleton** (`export default new …`) wired with `import` dependencies, and route files expose **`static build()`** that returns an Express `Router` (same idea as [Tirelire-API](https://github.com/medlaq777/Tirelire-API)).
 
 ```text
-Request → Router → Middleware → Controller → Service → Repository → Prisma → DB
+Request → Router → Middleware → Controller → Service → Repository → Mongoose → MongoDB
 ```
 
-- **Router** — defines routes and applies middleware chains
-- **Controller** — handles HTTP request/response, calls service
-- **Service** — business logic, orchestrates repositories
-- **Repository** — data access layer, all Prisma queries
-- **Common** — shared utilities (errors, validation, JWT, response helpers, i18n, pagination, logger)
-- **Routes** — `src/routes/api.js` mounts health/ready and feature routers under one stack
-- **Middlewares** — auth guard, roles guard, audit log, rate limiter, file upload, request context (correlation IDs), HTTP access logger, idempotency, UUID param validation, global error handler
+- **Router** — defines routes and applies middleware chains (`static build()` per domain)
+- **Controller** — HTTP in/out, Zod `safeParse` + `ValidationError.fromZod` on failure, calls service
+- **Service** — business rules, calls repositories
+- **Repository** — Mongoose queries and persistence
+- **Common** — `errors.js` (`AppError`, `ValidationError.fromZod`), `response.js` (`ApiResponse`)
+- **Schemas** — `src/schemas/*.schema.js` — Zod input shapes per domain
+- **Models** — `src/models/*.model.js` — Mongoose schemas
+- **Routes** — `src/app.js` mounts `*Routes.build()` under `/api`
+- **Middlewares** — `auth-guard`, `roles-guard`, `rate-limiter`, `upload`, `error-handler` (404 + centralized errors)
 
 ---
 
 ## Project Structure
 
 ```text
-Backend/
+titanos-api/
 ├── src/
-│   ├── app.js                      # Express app (/api/v1 mount, CORS, security)
-│   ├── server.js                   # Server startup + WebSocket attach
+│   ├── app.js                 # Express app: /api, security, Swagger (non-production)
+│   ├── server.js              # Listen + MongoDB connect + graceful shutdown
 │   ├── common/
-│   │   ├── asyncWrapper.js         # Async error propagation helper
-│   │   ├── errors.js               # Custom error classes (+ stable error codes)
-│   │   ├── i18n.js                 # Locale messages for error codes
-│   │   ├── jwt.js                  # JWT sign/verify helpers
-│   │   ├── logger.js               # Pino JSON logger
-│   │   ├── pagination.js         # Cursor encode/decode + page helper
-│   │   ├── response.js             # Standard response formatters (+ requestId)
-│   │   ├── roles.js                # Role constants
-│   │   └── validate.js             # Zod validation wrapper
+│   │   ├── errors.js          # AppError hierarchy; ValidationError.fromZod
+│   │   └── response.js        # ApiResponse (success, created, paginated, noContent)
 │   ├── config/
-│   │   ├── db.js                   # Prisma client singleton
-│   │   ├── minio.js                # MinIO client + bucket setup
-│   │   └── swagger.js              # OpenAPI 3.0 spec
-│   ├── controllers/                # HTTP handlers (one per module)
-│   ├── services/                   # Business logic (one per module)
-│   ├── repositories/               # Data access (one per module)
-│   ├── routers/                    # Route definitions (one per module)
-│   ├── schemas/                    # Zod input validation schemas
-│   ├── middlewares/
-│   │   ├── authGuard.js            # JWT token verification
-│   │   ├── rolesGuard.js           # Role-based access factory
-│   │   ├── auditLog.js             # Action audit middleware
-│   │   ├── apiVersion.js           # Sets apiVersion in response envelope
-│   │   ├── httpLogger.js           # JSON request log on response finish
-│   │   ├── idempotency.js          # Idempotency-Key for writes
-│   │   ├── requestContext.js       # X-Request-ID + Accept-Language
-│   │   ├── rateLimiter.js          # API + auth rate limiters
-│   │   ├── upload.js               # Multer file upload config
-│   │   ├── uuidParams.js           # UUID validation on :id route params
-│   │   ├── validateRequest.js      # Zod query/body validation
-│   │   └── globalHandlers.js       # 404 + centralized error handler
-│   ├── routes/
-│   │   └── api.js                  # Health, readiness, mounts feature routers
-│   ├── realtime/
-│   │   └── matchHub.js             # WebSocket hub for match broadcasts
-│   └── tests/
-│       ├── unit/                   # Unit tests
-│       └── integration/            # Integration tests
-├── prisma/
-│   ├── schema.prisma               # Database schema + enums + relations
-│   └── seed.js                     # Database seed script
-│   # Migrations: create locally with `npx prisma migrate dev` (not bundled in repo)
+│   │   ├── config.js          # Env-based config (Mongo, JWT, MinIO, CORS, …)
+│   │   ├── db.js              # Mongoose connect singleton
+│   │   └── swagger.js         # OpenAPI 3.0 document
+│   ├── controllers/           # One controller per domain
+│   ├── services/
+│   ├── repositories/
+│   ├── schemas/               # Zod request/query/body schemas
+│   ├── models/                # Mongoose models
+│   ├── middlewares/           # auth-guard, roles-guard, rate-limiter, upload, error-handler
+│   ├── routes/                # *Routes.build() per domain
+│   └── utils/                 # jwt, bcrypt, minio helpers, pagination, escape-regex
+├── seed/
+│   └── seed.js                # Demo data (npm run db:seed)
 ├── Dockerfile
-├── docker-compose.yml
+├── docker-compose.yml         # api + mongo + minio
 ├── .env.example
 └── package.json
 ```
 
 ---
 
-## Database Schema
+## Database (MongoDB / Mongoose)
 
-### Enums
+- **IDs:** MongoDB **ObjectId** (`_id`); API path/query IDs are 24-character hex strings.
+- **Collections** are defined in **`src/models/*.model.js`** (User, Team, Member, Session, SessionMember, Performance, MedicalRecord, WellnessForm, Media, Match, MatchEvent, FanAction, Article, TacticalHub, etc.).
+- **Enums** below match string enums used in Mongoose and Zod schemas.
 
 | Enum | Values |
 | --- | --- |
@@ -151,207 +117,32 @@ Backend/
 | `MatchEventType` | `GOAL`, `YELLOW_CARD`, `RED_CARD`, `SUBSTITUTION`, `INJURY` |
 | `FanActionType` | `VOTE`, `TICKET_PURCHASE`, `LIKE`, `SHARE` |
 | `ArticleStatus` | `DRAFT`, `PUBLISHED`, `ARCHIVED` |
-| `RiskLevel` | `LOW`, `MEDIUM`, `HIGH` |
+| `InjuryType` | `MUSCLE`, `LIGAMENT`, `TENDON`, `BONE`, `CONCUSSION`, `JOINT`, `OTHER` |
 | `MediaType` | `IMAGE`, `VIDEO`, `DOCUMENT`, `TACTICAL` |
 | `MediaAccess` | `PUBLIC`, `PRIVATE`, `TEAM` |
 | `TacticalContentType` | `FORMATION`, `PLAY`, `ANALYSIS`, `HIGHLIGHT` |
-
-### Models
-
-#### User
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| email | String | Unique |
-| passwordHash | String | bcrypt cost 12 |
-| refreshToken | String? | Hashed, nullable |
-| role | Role | Default: `PLAYER` |
-| createdAt, updatedAt | DateTime | Auto-managed |
-
-#### Member
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| userId | String | Unique FK → User |
-| firstName, lastName | String | |
-| position | String? | |
-| jerseyNumber | Int? | |
-| type | MemberType | |
-| teamId | String? | FK → Team |
-
-#### Team
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| name | String | Unique |
-| sport | String | |
-| logoUrl | String? | |
-
-#### Session
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| title | String | |
-| type | SessionType | |
-| date | DateTime | |
-| duration | Int | Minutes |
-| location | String? | |
-| teamId | String | FK → Team |
-
-#### Match
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| homeTeamId, awayTeamId | String | FK → Team |
-| homeScore, awayScore | Int | Default 0 |
-| status | MatchStatus | Default: `SCHEDULED` |
-| scheduledAt | DateTime | |
-| venue | String? | |
-
-#### MatchEvent
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| matchId | String | FK → Match |
-| memberId | String? | FK → Member |
-| type | MatchEventType | |
-| minute | Int | |
-| detail | String? | |
-
-#### MedicalRecord
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| memberId | String | FK → Member |
-| diagnosis | String | |
-| treatment | String? | |
-| notes | String? | |
-| fileUrls | String[] | Array of file URLs |
-| recordedAt | DateTime | |
-| createdBy | String | User ID |
-
-#### WellnessForm
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| memberId | String | FK → Member |
-| fatigue | Int | 1–10 scale |
-| sleep | Int | 1–10 scale |
-| stress | Int | 1–10 scale |
-| mood | Int | 1–10 scale |
-| notes | String? | |
-| date | DateTime | |
-
-#### AIInsight
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| memberId | String | FK → Member |
-| riskLevel | RiskLevel | `LOW`, `MEDIUM`, `HIGH` |
-| summary | String | AI-generated summary |
-| recommendation | String | AI-generated advice |
-| dataWindow | Int | Days of data analysed |
-| generatedAt | DateTime | |
-
-#### Performance Record
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| memberId | String | FK → Member |
-| sessionId | String? | FK → Session |
-| distance | Float? | Kilometres |
-| speed | Float? | km/h |
-| rating | Int? | 1–10 |
-| notes | String? | |
-| recordedAt | DateTime | |
-
-#### Media
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| filename | String | |
-| fileUrl | String | |
-| bucketName | String | |
-| objectKey | String | Unique, MinIO key |
-| mimeType | String | |
-| size | Int | Bytes |
-| type | MediaType | |
-| access | MediaAccess | |
-| ownerId | String | FK → User |
-| teamId | String? | FK → Team |
-
-#### AuditLog
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| userId | String | FK → User |
-| action | String | e.g. `LOGIN`, `CREATE` |
-| resource | String | e.g. `auth`, `medical` |
-| resourceId | String? | |
-| ipAddress | String? | |
-| createdAt | DateTime | |
-
-#### IdempotencyRecord
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| scopeKey | String | Unique `Idempotency-Key` header value |
-| fingerprint | String | Hash of method + URL + body |
-| statusCode | Int | Stored HTTP status |
-| responseBody | Json? | Stored JSON response (204 has null) |
-| createdAt | DateTime | Creation time |
-
-#### Article
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| title | String | |
-| content | String | |
-| coverImage | String? | |
-| status | ArticleStatus | Default: `DRAFT` |
-| authorId | String | FK → User |
-| publishedAt | DateTime? | |
-
-#### FanAction
-
-| Field | Type | Notes |
-| --- | --- | --- |
-| id | String (UUID) | Primary key |
-| userId | String | FK → User |
-| matchId | String? | FK → Match |
-| type | FanActionType | |
-| payload | JSON | Action data |
 
 ---
 
 ## API Endpoints
 
-All endpoints are prefixed with **`/api/v1`**.
+All endpoints are prefixed with **`/api`**.
 
-### Auth — `/api/v1/auth`
+### Auth — `/api/auth`
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
 | POST | `/register` | Public | Register a new user |
-| POST | `/login` | Public | Login, returns `accessToken` + sets HttpOnly `refreshToken` cookie |
-| POST | `/refresh` | Public | Rotate refresh token, returns new `accessToken` |
+| POST | `/login` | Public | Login: `accessToken` in body + HttpOnly `refreshToken` cookie |
+| POST | `/refresh` | Public | New `accessToken` (reads refresh cookie) |
+| GET | `/profile` | Bearer | Current user profile |
+| PATCH | `/profile` | Bearer | Update own profile |
+| GET | `/users` | Bearer, `ADMIN` | List users (paginated) |
+| PATCH | `/users/:id` | Bearer, `ADMIN` | Update user |
+| DELETE | `/users/:id` | Bearer, `ADMIN` | Delete user (not self) |
 | POST | `/logout` | Bearer | Invalidate refresh token |
 
-### Sport — `/api/v1/sport`
+### Sport — `/api/sport`
 
 **All routes require Bearer token.**
 
@@ -401,7 +192,7 @@ All endpoints are prefixed with **`/api/v1`**.
 | PUT | `/performances/:id` | ADMIN, STAFF | Update performance |
 | DELETE | `/performances/:id` | ADMIN | Delete performance |
 
-### Medical — `/api/v1/medical`
+### Medical — `/api/medical`
 
 **All routes require Bearer token + role `ADMIN` or `STAFF`.**
 
@@ -415,7 +206,7 @@ All endpoints are prefixed with **`/api/v1`**.
 | PUT | `/records/:id` | Update record |
 | DELETE | `/records/:id` | Delete record |
 
-### Wellness — `/api/v1/wellness`
+### Wellness — `/api/wellness`
 
 **All routes require Bearer token.**
 
@@ -425,10 +216,10 @@ All endpoints are prefixed with **`/api/v1`**.
 | GET | `/forms/:id` | ADMIN, STAFF | Get form by ID |
 | GET | `/members/:memberId/recent` | ADMIN, STAFF | Get recent forms for member |
 | POST | `/forms` | ADMIN, STAFF, PLAYER | Submit wellness form |
-| PUT | `/forms/:id` | ADMIN, STAFF | Update form |
+| PUT | `/forms/:id` | ADMIN, STAFF | Update form (HTTP PUT) |
 | DELETE | `/forms/:id` | ADMIN | Delete form |
 
-### Media — `/api/v1/media`
+### Media — `/api/media`
 
 **All routes require Bearer token.**
 
@@ -443,7 +234,7 @@ All endpoints are prefixed with **`/api/v1`**.
 
 **Upload fields:** `file` (binary), `type` (IMAGE/VIDEO/DOCUMENT/TACTICAL), `access` (PUBLIC/PRIVATE/TEAM), `teamId` (optional)
 
-### Fan — `/api/v1/fan`
+### Fan — `/api/fan`
 
 **All routes require Bearer token.**
 
@@ -462,6 +253,7 @@ All endpoints are prefixed with **`/api/v1`**.
 | Method | Path | Roles | Description |
 | --- | --- | --- | --- |
 | POST | `/events` | ADMIN, STAFF | Add match event (goal, card, etc.) |
+| PATCH | `/events/:id` | ADMIN, STAFF | Update match event |
 | GET | `/matches/:matchId/events` | All | Get match event timeline |
 | DELETE | `/events/:id` | ADMIN, STAFF | Delete match event |
 
@@ -484,43 +276,11 @@ All endpoints are prefixed with **`/api/v1`**.
 | PATCH | `/articles/:id` | ADMIN, STAFF | Update article |
 | DELETE | `/articles/:id` | ADMIN | Delete article |
 
-### AI Insights — `/api/v1/ai`
-
-**All routes require Bearer token + role `ADMIN` or `STAFF`.**
-
-| Method | Path | Roles | Description |
-| --- | --- | --- | --- |
-| POST | `/analyze` | ADMIN, STAFF | Trigger wellness analysis for a member |
-| GET | `/members/:memberId/insights` | ADMIN, STAFF | List all insights for member |
-| GET | `/members/:memberId/insights/latest` | ADMIN, STAFF | Latest insight for member |
-| GET | `/insights/:id` | ADMIN, STAFF | Get insight by ID |
-| DELETE | `/insights/:id` | ADMIN | Delete insight |
-
-**Analyze request body:**
-
-```json
-{
-  "memberId": "uuid",
-  "dataWindow": 14
-}
-```
-
-### Audit — `/api/v1/audit`
-
-**All routes require Bearer token + role `ADMIN`.**
-
-| Method | Path | Description |
-| --- | --- | --- |
-| GET | `/` | List all audit logs |
-| GET | `/users/:userId` | Get audit logs for a specific user |
-
-### System
+### Documentation
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/api/v1/health` | Public | Liveness (process up, uptime) |
-| GET | `/api/v1/ready` | Public | Readiness (`SELECT 1` on DB; **503** if DB unavailable) |
-| GET | `/api/v1/docs` | Public (dev only) | Swagger UI (disabled in `NODE_ENV=production`) |
+| GET | `/api/docs` | Public (dev only) | Swagger UI (disabled in `NODE_ENV=production`) |
 
 ---
 
@@ -529,9 +289,9 @@ All endpoints are prefixed with **`/api/v1`**.
 ### Token Strategy
 
 ```text
-POST /api/v1/auth/login
+POST /api/auth/login
   → returns { accessToken } in response body
-  → sets refreshToken as HttpOnly cookie (path `/api/v1/auth`)
+  → sets refreshToken as HttpOnly cookie (path `/api/auth`)
 ```
 
 - **Access Token** — short-lived (15 min), sent as `Authorization: Bearer <token>` header
@@ -540,7 +300,7 @@ POST /api/v1/auth/login
 ### Token Rotation
 
 ```text
-POST /api/v1/auth/refresh
+POST /api/auth/refresh
   → reads refreshToken from cookie
   → verifies token hash against DB
   → issues new accessToken + new refreshToken (rotation)
@@ -551,15 +311,15 @@ POST /api/v1/auth/refresh
 | Role | Description |
 | --- | --- |
 | `ADMIN` | Full access to all resources |
-| `STAFF` | Read/write access; cannot delete or access audit logs |
+| `STAFF` | Read/write access; cannot delete certain resources (per route) |
 | `PLAYER` | Can submit wellness forms, upload media, view own data |
 | `FAN` | Can view public data, submit fan actions |
 
 ### Guards
 
 ```js
-// Apply in route definition:
-router.get('/records', authGuard, rolesGuard('ADMIN', 'STAFF'), controller.getAll);
+// Route modules use auth guard + role allowlist, e.g.:
+r.get("/records", auth, roles.allow("ADMIN", "STAFF"), controller.getAllRecords);
 ```
 
 ---
@@ -568,26 +328,14 @@ router.get('/records', authGuard, rolesGuard('ADMIN', 'STAFF'), controller.getAl
 
 Copy `.env.example` to `.env` and fill in your values.
 
+See **[.env.example](.env.example)** for the full list. Typical variables:
+
 ```env
-# Server
 PORT=3001
 NODE_ENV=development
-LOG_LEVEL=info
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/titanos_db
-DIRECT_URL=postgresql://user:password@localhost:5432/titanos_db
-
-# CORS (comma-separated origins)
-CORS_ORIGIN=http://localhost:3000
-
-# JWT — generate with: node -e "require('crypto').randomBytes(64).toString('hex')"
-JWT_ACCESS_SECRET=your_jwt_access_secret_here_min_32_chars
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_here_min_32_chars
-JWT_ACCESS_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
-
-# MinIO (File Storage)
+MONGODB_URI=mongodb://127.0.0.1:27017/your_db
+JWT_ACCESS_SECRET=...
+JWT_REFRESH_SECRET=...
 MINIO_ENDPOINT=localhost
 MINIO_PORT=9000
 MINIO_USE_SSL=false
@@ -595,12 +343,7 @@ MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
 MINIO_BUCKET=titanos
 MINIO_PUBLIC_URL=http://localhost:9000
-
-# OpenAI (optional — falls back to rule-based scoring if not set)
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o-mini
-
-# File Upload
+MEDIA_OBJECT_KEY_SECRET=at_least_32_chars_random_secret
 MAX_FILE_SIZE=52428800
 ```
 
@@ -611,55 +354,32 @@ MAX_FILE_SIZE=52428800
 ### Prerequisites
 
 - Node.js 20+
-- PostgreSQL 16
-- MinIO (or any S3-compatible service)
+- MongoDB 7+ (local or remote URI)
+- MinIO optional for local file upload tests (or use Docker Compose)
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone <repo-url>
-cd Backend
-
-# Install dependencies
+cd titanos-api
 npm install
-
-# Copy environment file
 cp .env.example .env
-# Edit .env with your values
+# Set MONGODB_URI, JWT secrets, MinIO, MEDIA_OBJECT_KEY_SECRET, etc.
 
-# Generate Prisma client
-npm run db:generate
-
-# Create schema in the database (choose one)
-npm run db:migrate
-# or: npm run db:push
-
-# Seed the database (optional)
-npm run db:seed
-
-# Start development server
-npm run dev
+npm run db:seed   # optional: demo users/data (see seed/seed.js)
+npm run dev       # or: npm start
 ```
 
-The server starts on `http://localhost:3001`.
+The server listens on **`PORT`** from `.env` (default **3001**).
 
 ### Available Scripts
 
 | Script | Description |
 | --- | --- |
-| `npm start` | Start production server |
-| `npm run dev` | Start dev server with hot reload (nodemon) |
-| `npm run db:generate` | Generate Prisma client from schema |
-| `npm run db:migrate` | Create and apply migration (dev) |
-| `npm run db:migrate:prod` | Apply migrations (production) |
-| `npm run db:studio` | Open Prisma Studio GUI |
-| `npm run db:seed` | Seed the database |
-| `npm run db:reset` | Reset and re-seed database |
-| `npm test` | Run all tests once |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Generate test coverage report |
-| `npm run lint` | Run ESLint (zero warnings) |
+| `npm start` | Production server (`node --watch`) |
+| `npm run dev` | Dev server with nodemon |
+| `npm run db:seed` | Run MongoDB seed script |
+| `npm run lint` | ESLint (zero warnings) |
 
 ---
 
@@ -668,7 +388,7 @@ The server starts on `http://localhost:3001`.
 ### Development with Docker Compose
 
 ```bash
-# Start all services (API + PostgreSQL + MinIO)
+# Start API + MongoDB + MinIO
 docker compose up -d
 
 # View logs
@@ -683,7 +403,7 @@ docker compose down
 | Service | Port | Description |
 | --- | --- | --- |
 | `api` | 3001 | TitanOs backend |
-| `postgres` | 5432 | PostgreSQL database |
+| `mongo` | 27017 | MongoDB (internal; expose if needed) |
 | `minio` | 9000 | MinIO S3 storage |
 | `minio` (console) | 9001 | MinIO web console |
 
@@ -695,51 +415,26 @@ docker build -t titanos-backend .
 
 # Run container
 docker run -p 3001:3001 \
-  -e DATABASE_URL=... \
+  -e MONGODB_URI=... \
   -e JWT_ACCESS_SECRET=... \
   -e JWT_REFRESH_SECRET=... \
+  -e MINIO_ENDPOINT=... \
   titanos-backend
 ```
 
-The Dockerfile uses `node:20-alpine` for a minimal production image. Dependencies are installed with `npm ci --omit=dev` and the Prisma client is generated at build time.
-
----
-
-## Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage report (outputs to ./coverage)
-npm run test:coverage
-```
-
-### Test Structure
-
-```text
-src/tests/
-├── unit/           # Vitest: schemas, services, controllers, matchHub, uuidParams, …
-├── integration/    # Supertest: auth.routes, roles, medical/sport access, *.app tests
-└── helpers/        # fullApp.js and shared test utilities
-```
-
-Integration tests call routes under **`/api/v1`**. The Prisma client is mocked where appropriate via `vi.mock()`.
+The **Dockerfile** uses `node:20-alpine`, runs `npm ci`, copies `src` and `seed`, and starts `node src/server.js`.
 
 ---
 
 ## API Documentation
 
-Swagger UI is available in development mode at:
+Swagger UI is available when **`NODE_ENV` is not `production`** at:
 
 ```text
-http://localhost:3001/api/v1/docs
+http://localhost:<PORT>/api/docs
 ```
 
-The spec is defined in [src/config/swagger.js](src/config/swagger.js) using OpenAPI 3.0. It describes headers (`Idempotency-Key`, `Accept-Language`, tracing), pagination, and error shape.
+The spec lives in [src/config/swagger.js](src/config/swagger.js) (OpenAPI 3.0). **POST /auth/login** and **POST /auth/register** include examples aligned with **[seed/seed.js](seed/seed.js)** (use a **new** email for register if the address is already seeded).
 
 ---
 
@@ -747,21 +442,8 @@ The spec is defined in [src/config/swagger.js](src/config/swagger.js) using Open
 
 | Concern | Behavior |
 | --- | --- |
-| **Logs** | Pino writes **JSON** lines to stdout (fields include `level`, `time`, `service`, and per-request fields from `httpLogger`: `requestId`, `method`, `path`, `statusCode`, `durationMs`, `locale`). Set `LOG_LEVEL` (e.g. `info`, `debug`, `error`). |
-| **Kubernetes** | Use **`GET /api/v1/health`** for liveness and **`GET /api/v1/ready`** for readiness (DB check). |
-| **Correlation** | Send **`X-Request-ID`** or **`X-Correlation-ID`**; response echoes **`X-Request-ID`** and JSON payloads include **`requestId`**. |
+| **Logging** | MongoDB connect logs a short message to the console; no structured request logger in-repo. Add middleware if you need request logs. |
 
----
-
-## Real-time (WebSocket)
-
-Live match updates use a **WebSocket** endpoint on the same HTTP server as the API (not under `/api/v1`):
-
-```text
-ws://<host>:<port>/ws?token=<JWT_ACCESS_TOKEN>
-```
-
-After connecting, send JSON: `{"action":"subscribe","matchId":"<uuid>"}`. Fan module updates can broadcast score and timeline events to subscribed clients. Unauthorized connections are closed with code **4401**.
 
 ---
 
@@ -771,29 +453,30 @@ After connecting, send JSON: `{"action":"subscribe","matchId":"<uuid>"}`. Fan mo
 | --- | --- |
 | Security headers | `helmet` (14 headers: CSP, HSTS, X-Frame-Options, etc.) |
 | Rate limiting | `express-rate-limit` — 100 req/15min global, 10 req/15min for auth; JSON body includes `error.code` (e.g. `RATE_LIMIT`) |
-| CORS | Configurable origin allowlist; allows `Authorization`, `X-Request-ID`, `X-Correlation-ID`, `Idempotency-Key`, `Accept-Language` |
+| CORS | Configurable origin (`Config.corsOrigin`); allows `Authorization`, `Content-Type` |
 | Password hashing | `bcryptjs` with cost factor 12 |
 | Refresh token hashing | `bcryptjs` with cost factor 10 |
 | JWT | Short-lived access tokens (15m) + HttpOnly refresh cookie (7d) |
-| Input validation | Zod schemas on all endpoints |
-| Role-based access | `rolesGuard` middleware on all sensitive routes |
+| Input validation | Zod in controllers (`src/schemas`); failures use `ValidationError.fromZod` → optional `error.issues` |
+| Role-based access | `roles-guard` where routes require roles |
 | x-powered-by | Disabled |
-| SQL injection | Prevented by Prisma parameterized queries |
+| NoSQL injection | `express-mongo-sanitize` on JSON bodies |
 
-### Error Response Format
-
-Errors return a consistent JSON structure (success responses include `requestId`, `timestamp`, and `apiVersion` where applicable):
+### Error response format
 
 ```json
 {
   "success": false,
   "data": null,
-  "message": "Human-readable error message",
-  "error": { "code": "VALIDATION_ERROR" },
-  "timestamp": "2026-04-01T12:00:00.000Z",
-  "requestId": "uuid"
+  "message": "Human-readable summary",
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "issues": [{ "path": "email", "message": "…" }]
+  }
 }
 ```
+
+`issues` is present only for Zod validation failures (`ValidationError.fromZod`). Other errors typically have only `error.code` and `message`.
 
 | HTTP Status | Error |
 | --- | --- |
@@ -814,11 +497,11 @@ Files are stored in MinIO (S3-compatible).
 ### Upload Flow
 
 ```text
-Client → POST /api/v1/media/upload (multipart/form-data)
+Client → POST /api/media/upload (multipart/form-data)
   → Multer parses file into memory (max 50 MB)
   → Validate MIME type (allowlist)
   → Ensure bucket exists
-  → Upload to MinIO (UUID-based object key)
+  → Upload to MinIO (opaque object key from media service)
   → Save metadata to DB (Media record)
   → Return media metadata + fileUrl
 ```
@@ -834,64 +517,10 @@ Client → POST /api/v1/media/upload (multipart/form-data)
 ### Presigned URLs
 
 ```text
-GET /api/v1/media/:id/presigned-url?expirySeconds=900
+GET /api/media/:id/presigned-url?expirySeconds=900
 ```
 
 - Default expiry: 900 seconds (15 minutes)
 - Maximum expiry: 3600 seconds (1 hour)
 - Access control: ADMIN/STAFF can access any file; PRIVATE files require ownership; TEAM files require team membership
 
----
-
-## AI Insights
-
-The AI module analyses wellness form data and generates risk assessments.
-
-### Analysis Flow
-
-```text
-POST /api/v1/ai/analyze { memberId, dataWindow }
-  → Fetch recent wellness forms (last N days)
-  → Aggregate: avgFatigue, avgSleep, avgStress, avgMood
-  → If OPENAI_API_KEY is set → call OpenAI GPT-4o-mini
-  → Else → rule-based scoring (threshold checks)
-  → Store AIInsight with riskLevel + summary + recommendation
-```
-
-### Risk Level Logic (Rule-Based Fallback)
-
-| Condition | Risk Level |
-| --- | --- |
-| avgFatigue ≥ 7 OR avgStress ≥ 7 OR avgSleep ≤ 4 OR avgMood ≤ 4 | `HIGH` |
-| avgFatigue ≥ 5 OR avgStress ≥ 5 OR avgSleep ≤ 6 OR avgMood ≤ 6 | `MEDIUM` |
-| All metrics within healthy range | `LOW` |
-
-### OpenAI Integration
-
-When `OPENAI_API_KEY` is set, the service sends aggregated wellness metrics to GPT-4o-mini and requests a structured JSON response with `riskLevel`, `summary`, and `recommendation`. Falls back to rule-based on API error.
-
----
-
-## Audit Logging
-
-All sensitive write operations are automatically logged via the `auditAction` middleware.
-
-```js
-// Example usage in route:
-router.post('/login', auditAction('LOGIN', 'auth'), authController.login);
-```
-
-Logs are written **asynchronously after the response** (non-blocking). Only successful operations (2xx) by authenticated users are logged.
-
-### Audit Log Fields
-
-| Field | Description |
-| --- | --- |
-| userId | The user who performed the action |
-| action | Action name (e.g., `LOGIN`, `CREATE`, `DELETE`) |
-| resource | Resource type (e.g., `auth`, `medical`, `media`) |
-| resourceId | ID of the affected resource (if applicable) |
-| ipAddress | Client IP address |
-| createdAt | Timestamp |
-
-Audit logs are accessible at `GET /api/v1/audit` (ADMIN only).

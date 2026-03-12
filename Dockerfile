@@ -7,10 +7,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-COPY prisma ./prisma
+COPY seed ./seed
 COPY src ./src
 
-RUN npx prisma generate
 RUN npm prune --production
 
 ENV NODE_ENV=production

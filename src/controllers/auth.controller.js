@@ -1,50 +1,61 @@
-import { asyncWrapper } from "../common/asyncWrapper.js";
-import { success, created, noContent } from "../common/response.js";
-import { UnauthorizedError } from "../common/errors.js";
+import authService from "../services/user.service.js";
+import { ApiResponse } from "../common/response.js";
+import { ValidationError } from "../common/errors.js";
+import {
+  registerBodySchema,
+  loginBodySchema,
+} from "../schemas/auth.schema.js";
 
-const REFRESH_COOKIE = "refreshToken";
-
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: "/api/v1/auth",
-};
-
-export class AuthController {
-  constructor(authService) {
-    this.authService = authService;
+class AuthController {
+  constructor(userService) {
+    this.userService = userService;
   }
 
-  register = asyncWrapper(async (req, res) => {
-    const user = await this.authService.register(req.body);
-    return created(res, { id: user.id, email: user.email, role: user.role });
-  });
+  async register(req, res, next) {
+    try {
+      const parsed = registerBodySchema.safeParse(req.body);
+      if (!parsed.success) throw ValidationError.fromZod(parsed.error);
+      const user = await this.userService.register(parsed.data);
+      return ApiResponse.created(res, user);
+    } catch (err) {
+      next(err);
+    }
+  }
 
-  login = asyncWrapper(async (req, res) => {
-    const { accessToken, refreshToken, user } = await this.authService.login(req.body);
-    res.cookie(REFRESH_COOKIE, refreshToken, COOKIE_OPTIONS);
-    return success(res, { accessToken, user });
-  });
+  async login(req, res, next) {
+    try {
+      const parsed = loginBodySchema.safeParse(req.body);
+      if (!parsed.success) throw ValidationError.fromZod(parsed.error);
+      const result = await this.userService.login(parsed.data);
+      return ApiResponse.success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
 
-  refresh = asyncWrapper(async (req, res) => {
-    const token = req.cookies?.[REFRESH_COOKIE];
-    if (!token) throw new UnauthorizedError();
-    const { accessToken, refreshToken } = await this.authService.refresh(token);
-    res.cookie(REFRESH_COOKIE, refreshToken, COOKIE_OPTIONS);
-    return success(res, { accessToken });
-  });
+  async refresh(req, res, next) {
+    try {
+      const refreshToken = req.cookies.refreshToken;
+      if (!refreshToken) throw new ValidationError("No refresh token provided");
+      const result = await this.userService.refresh(refreshToken);
+      return ApiResponse.success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
 
-  logout = asyncWrapper(async (req, res) => {
-    const token = req.cookies?.[REFRESH_COOKIE];
-    if (token) await this.authService.logout(token);
-    res.clearCookie(REFRESH_COOKIE, {
-      httpOnly: COOKIE_OPTIONS.httpOnly,
-      secure: COOKIE_OPTIONS.secure,
-      sameSite: COOKIE_OPTIONS.sameSite,
-      path: COOKIE_OPTIONS.path,
-    });
-    return noContent(res);
-  });
+  async logout(req, res, next) {
+    try {
+      const refreshToken = req.cookies.refreshToken;
+      if (refreshToken) {
+        await this.userService.logout(refreshToken);
+      }
+      res.clearCookie("refreshToken");
+      return ApiResponse.noContent(res);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
+
+export default new AuthController(authService);

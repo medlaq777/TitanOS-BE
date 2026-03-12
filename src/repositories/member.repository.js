@@ -1,19 +1,25 @@
-export class MemberRepository {
-  constructor(prisma) {
-    this.prisma = prisma;
+import Member from "../models/member.model.js";
+
+class MemberRepository {
+  async findById(id) {
+    return Member.findById(id).exec();
   }
 
-  findById(id) {
-    return this.prisma.member.findUnique({
-      where: { id },
-      select: { id: true, firstName: true, lastName: true, type: true },
-    });
+  async create(data) {
+    return new Member(data).save();
   }
 
-  findAll() {
-    return this.prisma.member.findMany({
-      select: { id: true, firstName: true, lastName: true, type: true },
-      orderBy: { lastName: 'asc' },
-    });
+  async updateById(id, data, options = { new: true }) {
+    return Member.findByIdAndUpdate(id, data, options).exec();
+  }
+
+  async deleteById(id) {
+    return Member.findByIdAndDelete(id).exec();
+  }
+
+  async find(filter = {}) {
+    return Member.find(filter).exec();
   }
 }
+
+export default new MemberRepository();
