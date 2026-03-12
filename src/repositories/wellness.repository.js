@@ -1,14 +1,23 @@
+import { decodeCursor, toPage } from "../common/pagination.js";
+
 export class WellnessRepository {
   constructor(prisma) {
     this.prisma = prisma;
   }
 
-  findAllForms(memberId) {
-    return this.prisma.wellnessForm.findMany({
-      where: memberId ? { memberId } : undefined,
-      include: { member: { select: { id: true, firstName: true, lastName: true } } },
-      orderBy: { date: 'desc' },
-    });
+  findFormsPage(memberId, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.wellnessForm
+      .findMany({
+        where: memberId ? { memberId } : undefined,
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ date: "desc" }, { id: "desc" }],
+        include: { member: { select: { id: true, firstName: true, lastName: true } } },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
   findFormById(id) {
@@ -38,7 +47,7 @@ export class WellnessRepository {
     since.setDate(since.getDate() - days);
     return this.prisma.wellnessForm.findMany({
       where: { memberId, date: { gte: since } },
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
     });
   }
 }

@@ -4,7 +4,11 @@ import { rolesGuard } from '../middlewares/rolesGuard.js';
 import { registerUuidParamValidators } from '../middlewares/uuidParams.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import { auditAction } from '../middlewares/auditLog.js';
-import { fanArticlesQuerySchema, fanMatchesQuerySchema } from '../schemas/query.schemas.js';
+import {
+  fanArticlesQuerySchema,
+  fanMatchesQuerySchema,
+  fanActionsQuerySchema,
+} from '../schemas/query.schemas.js';
 import {
   createMatchSchema,
   updateMatchSchema,
@@ -68,8 +72,17 @@ fanRouter.get('/matches/:matchId/events', fanController.getMatchTimeline);
 fanRouter.delete('/events/:id', rolesGuard('ADMIN', 'STAFF'), auditAction('DELETE_MATCH_EVENT', 'fan'), fanController.deleteMatchEvent);
 
 fanRouter.post('/actions', validateRequest({ body: createFanActionSchema }), auditAction('CREATE_FAN_ACTION', 'fan'), fanController.createFanAction);
-fanRouter.get('/actions/me', fanController.getMyActions);
-fanRouter.get('/matches/:matchId/actions', rolesGuard('ADMIN', 'STAFF'), fanController.getFanActionsByMatch);
+fanRouter.get(
+  '/actions/me',
+  validateRequest({ query: fanActionsQuerySchema }),
+  fanController.getMyActions,
+);
+fanRouter.get(
+  '/matches/:matchId/actions',
+  rolesGuard('ADMIN', 'STAFF'),
+  validateRequest({ query: fanActionsQuerySchema }),
+  fanController.getFanActionsByMatch,
+);
 fanRouter.get('/matches/:matchId/votes', fanController.getMatchVotes);
 
 fanRouter.post(

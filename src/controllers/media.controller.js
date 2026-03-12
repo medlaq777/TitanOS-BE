@@ -1,5 +1,5 @@
 import { asyncWrapper } from '../common/asyncWrapper.js';
-import { success, created, noContent } from '../common/response.js';
+import { success, created, noContent, paginated } from '../common/response.js';
 import { ValidationError } from '../common/errors.js';
 
 export class MediaController {
@@ -20,8 +20,13 @@ export class MediaController {
   });
 
   getAllMedia = asyncWrapper(async (req, res) => {
-    const media = await this.mediaService.getAllMedia(req.user.id, req.user.role);
-    return success(res, media);
+    const { cursor, limit } = req.query;
+    const page = await this.mediaService.getAllMedia(req.user.id, req.user.role, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getMediaById = asyncWrapper(async (req, res) => {
@@ -34,8 +39,13 @@ export class MediaController {
   });
 
   getMediaByTeam = asyncWrapper(async (req, res) => {
-    const media = await this.mediaService.getMediaByTeam(req.params.teamId);
-    return success(res, media);
+    const { cursor, limit } = req.query;
+    const page = await this.mediaService.getMediaByTeam(req.params.teamId, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getPresignedUrl = asyncWrapper(async (req, res) => {

@@ -5,10 +5,17 @@ export const swaggerDocument = {
     version: '1.0.0',
     description:
       'Sports management platform — REST API documentation. ' +
+      '**API version 1** — all routes are under `/api/v1`. ' +
+      '**Route and path parameters** use **UUID v4** (RFC 4122) for resource identifiers in PostgreSQL. ' +
+      'MongoDB **ObjectId** is not used; invalid IDs return `400` via UUID validation (replaces ObjectId checks for this stack). ' +
+      '**Tracing:** optional `X-Request-ID` or `X-Correlation-ID`; echoed as `X-Request-ID` and in JSON `requestId` (JSON logs in production). ' +
+      '**Locales:** `Accept-Language` (e.g. `fr`) selects translated messages for standard `error.code` values. ' +
+      '**Pagination:** list endpoints support `cursor` (opaque) and `limit` (1–100, default 20); responses include `meta.nextCursor`, `meta.hasMore`. ' +
+      '**Idempotency:** optional `Idempotency-Key` (8–256 chars) on POST/PUT/PATCH replays the prior successful response for the same key and request body. ' +
       'Live match updates: WebSocket `ws://<host>:<port>/ws?token=<JWT>` then send JSON `{"action":"subscribe","matchId":"<uuid>"}`. ' +
       'Broadcasts mirror score and timeline changes from the Fan module.',
   },
-  servers: [{ url: '/api', description: 'API base path' }],
+  servers: [{ url: '/api/v1', description: 'TitanOS API v1' }],
   components: {
     securitySchemes: {
       bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -135,7 +142,15 @@ export const swaggerDocument = {
       get: { tags: ['Audit'], summary: 'List all audit logs (ADMIN only)', responses: { 200: { description: 'Array of audit logs' } } },
     },
     '/health': {
-      get: { tags: ['System'], summary: 'Health check', security: [], responses: { 200: { description: 'Service is healthy' } } },
+      get: { tags: ['System'], summary: 'Liveness: process up', security: [], responses: { 200: { description: 'OK' } } },
+    },
+    '/ready': {
+      get: {
+        tags: ['System'],
+        summary: 'Readiness: database reachable',
+        security: [],
+        responses: { 200: { description: 'Ready' }, 503: { description: 'Database unavailable' } },
+      },
     },
   },
 };

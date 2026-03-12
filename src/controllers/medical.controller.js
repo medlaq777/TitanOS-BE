@@ -1,5 +1,5 @@
 import { asyncWrapper } from '../common/asyncWrapper.js';
-import { success, created, noContent } from '../common/response.js';
+import { success, created, noContent, paginated } from '../common/response.js';
 
 export class MedicalController {
   constructor(medicalService) {
@@ -7,8 +7,13 @@ export class MedicalController {
   }
 
   getAllRecords = asyncWrapper(async (req, res) => {
-    const records = await this.medicalService.getAllRecords(req.query.memberId);
-    return success(res, records);
+    const { memberId, cursor, limit } = req.query;
+    const page = await this.medicalService.getRecordsPage(memberId, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getRecordById = asyncWrapper(async (req, res) => {

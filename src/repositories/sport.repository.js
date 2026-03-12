@@ -1,10 +1,22 @@
+import { decodeCursor, toPage } from "../common/pagination.js";
+
 export class SportRepository {
   constructor(prisma) {
     this.prisma = prisma;
   }
 
-  findAllTeams() {
-    return this.prisma.team.findMany({ include: { members: true } });
+  findTeamsPage({ cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.team
+      .findMany({
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: { members: true },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
   findTeamById(id) {
@@ -23,11 +35,19 @@ export class SportRepository {
     return this.prisma.team.delete({ where: { id } });
   }
 
-  findAllMembers(teamId) {
-    return this.prisma.member.findMany({
-      where: teamId ? { teamId } : undefined,
-      include: { user: true, team: true },
-    });
+  findMembersPage(teamId, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.member
+      .findMany({
+        where: teamId ? { teamId } : undefined,
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: { user: true, team: true },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
   findMemberById(id) {
@@ -46,16 +66,26 @@ export class SportRepository {
     return this.prisma.member.delete({ where: { id } });
   }
 
-  findAllSessions(teamId, from, to) {
-    return this.prisma.session.findMany({
-      where: {
-        ...(teamId && { teamId }),
-        ...(from && { date: { gte: new Date(from) } }),
-        ...(to && { date: { lte: new Date(to) } }),
-      },
-      include: { team: true, participants: { include: { member: true } } },
-      orderBy: { date: 'asc' },
-    });
+  findSessionsPage(teamId, from, to, { cursor, limit }) {
+    const where = {};
+    if (teamId) where.teamId = teamId;
+    if (from || to) {
+      where.date = {};
+      if (from) where.date.gte = new Date(from);
+      if (to) where.date.lte = new Date(to);
+    }
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.session
+      .findMany({
+        where,
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ date: "asc" }, { id: "asc" }],
+        include: { team: true, participants: { include: { member: true } } },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
   findSessionById(id) {
@@ -91,7 +121,7 @@ export class SportRepository {
     return this.prisma.performance.findMany({
       where: { memberId },
       include: { session: true },
-      orderBy: { recordedAt: 'desc' },
+      orderBy: { recordedAt: "desc" },
     });
   }
 
@@ -118,7 +148,7 @@ export class SportRepository {
     return this.prisma.performance.findMany({
       where: { sessionId },
       include: { member: true },
-      orderBy: { recordedAt: 'desc' },
+      orderBy: { recordedAt: "desc" },
     });
   }
 

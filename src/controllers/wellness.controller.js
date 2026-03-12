@@ -1,5 +1,5 @@
 import { asyncWrapper } from '../common/asyncWrapper.js';
-import { success, created, noContent } from '../common/response.js';
+import { success, created, noContent, paginated } from '../common/response.js';
 
 export class WellnessController {
   constructor(wellnessService) {
@@ -7,8 +7,13 @@ export class WellnessController {
   }
 
   getAllForms = asyncWrapper(async (req, res) => {
-    const forms = await this.wellnessService.getAllForms(req.query.memberId);
-    return success(res, forms);
+    const { memberId, cursor, limit } = req.query;
+    const page = await this.wellnessService.getFormsPage(memberId, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getFormById = asyncWrapper(async (req, res) => {

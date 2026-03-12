@@ -4,7 +4,11 @@ import { rolesGuard } from '../middlewares/rolesGuard.js';
 import { registerUuidParamValidators } from '../middlewares/uuidParams.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import { auditAction } from '../middlewares/auditLog.js';
-import { sportMembersQuerySchema, sportSessionsQuerySchema } from '../schemas/query.schemas.js';
+import {
+  sportTeamsQuerySchema,
+  sportMembersQuerySchema,
+  sportSessionsQuerySchema,
+} from '../schemas/query.schemas.js';
 import { assignMemberTeamSchema, addSessionParticipantSchema } from '../schemas/sport.schemas.js';
 import { SportController } from '../controllers/sport.controller.js';
 import { SportService } from '../services/sport.service.js';
@@ -20,7 +24,7 @@ registerUuidParamValidators(sportRouter, 'id', 'memberId');
 
 sportRouter.use(authGuard);
 
-sportRouter.get('/teams', sportController.getAllTeams);
+sportRouter.get('/teams', validateRequest({ query: sportTeamsQuerySchema }), sportController.getAllTeams);
 sportRouter.get('/teams/:id', sportController.getTeamById);
 sportRouter.post('/teams', rolesGuard('ADMIN', 'STAFF'), auditAction('CREATE_TEAM', 'sport'), sportController.createTeam);
 sportRouter.put('/teams/:id', rolesGuard('ADMIN', 'STAFF'), auditAction('UPDATE_TEAM', 'sport'), sportController.updateTeam);

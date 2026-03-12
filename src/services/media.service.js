@@ -66,11 +66,11 @@ export class MediaService {
     return { url, expiresIn: expirySeconds, mediaId: id };
   }
 
-  async getAllMedia(requesterId, requesterRole) {
-    if (requesterRole === 'ADMIN' || requesterRole === 'STAFF') {
-      return this.mediaRepository.findAll();
+  async getAllMedia(requesterId, requesterRole, { cursor, limit }) {
+    if (requesterRole === "ADMIN" || requesterRole === "STAFF") {
+      return this.mediaRepository.findAllPage({}, { cursor, limit });
     }
-    return this.mediaRepository.findAllByOwner(requesterId);
+    return this.mediaRepository.findAllByOwnerPage(requesterId, { cursor, limit });
   }
 
   async getMediaById(id, requesterId, requesterRole) {
@@ -80,8 +80,8 @@ export class MediaService {
     return media;
   }
 
-  async getMediaByTeam(teamId) {
-    return this.mediaRepository.findAllByTeam(teamId);
+  async getMediaByTeam(teamId, { cursor, limit }) {
+    return this.mediaRepository.findAllByTeamPage(teamId, { cursor, limit });
   }
 
   async deleteMedia(id, requesterId, requesterRole) {

@@ -14,8 +14,8 @@ export class SportService {
     this.sportRepository = sportRepository;
   }
 
-  getAllTeams() {
-    return this.sportRepository.findAllTeams();
+  getTeamsPage({ cursor, limit }) {
+    return this.sportRepository.findTeamsPage({ cursor, limit });
   }
 
   async getTeamById(id) {
@@ -78,8 +78,8 @@ export class SportService {
     return this.sportRepository.updateMember(memberId, { teamId: null });
   }
 
-  getAllSessions(teamId, from, to) {
-    return this.sportRepository.findAllSessions(teamId, from, to);
+  getSessionsPage(teamId, from, to, { cursor, limit }) {
+    return this.sportRepository.findSessionsPage(teamId, from, to, { cursor, limit });
   }
 
   async getSessionById(id) {

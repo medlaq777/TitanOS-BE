@@ -5,6 +5,7 @@ import { registerUuidParamValidators } from '../middlewares/uuidParams.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import { auditAction } from '../middlewares/auditLog.js';
 import { presignedUrlSchema } from '../schemas/media.schemas.js';
+import { mediaListQuerySchema } from '../schemas/query.schemas.js';
 import { MediaController } from '../controllers/media.controller.js';
 import { MediaService } from '../services/media.service.js';
 import { MediaRepository } from '../repositories/media.repository.js';
@@ -28,9 +29,14 @@ mediaRouter.post(
   mediaController.uploadFile,
 );
 
-mediaRouter.get('/', mediaController.getAllMedia);
+mediaRouter.get('/', validateRequest({ query: mediaListQuerySchema }), mediaController.getAllMedia);
 
-mediaRouter.get('/team/:teamId', rolesGuard('ADMIN', 'STAFF'), mediaController.getMediaByTeam);
+mediaRouter.get(
+  '/team/:teamId',
+  rolesGuard('ADMIN', 'STAFF'),
+  validateRequest({ query: mediaListQuerySchema }),
+  mediaController.getMediaByTeam,
+);
 
 mediaRouter.get('/:id', mediaController.getMediaById);
 

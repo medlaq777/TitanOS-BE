@@ -21,8 +21,8 @@ export class FanService {
     return this.fanRepository.createMatch({ ...data, scheduledAt: new Date(data.scheduledAt) });
   }
 
-  getAllMatches(status) {
-    return this.fanRepository.findAllMatches(status ? { status } : {});
+  getMatchesPage(status, { cursor, limit }) {
+    return this.fanRepository.findMatchesPage(status ? { status } : {}, { cursor, limit });
   }
 
   async getMatchById(id) {
@@ -80,13 +80,13 @@ export class FanService {
     return this.fanRepository.createFanAction({ ...data, userId });
   }
 
-  async getFanActionsByMatch(matchId) {
+  async getFanActionsByMatchPage(matchId, { cursor, limit }) {
     await this.getMatchById(matchId);
-    return this.fanRepository.findFanActionsByMatch(matchId);
+    return this.fanRepository.findFanActionsByMatchPage(matchId, { cursor, limit });
   }
 
-  getMyActions(userId) {
-    return this.fanRepository.findFanActionsByUser(userId);
+  getMyActionsPage(userId, { cursor, limit }) {
+    return this.fanRepository.findFanActionsByUserPage(userId, { cursor, limit });
   }
 
   async getMatchVotes(matchId) {
@@ -100,8 +100,8 @@ export class FanService {
     return this.fanRepository.createArticle({ ...data, authorId });
   }
 
-  getAllArticles(status) {
-    return this.fanRepository.findAllArticles(status);
+  getArticlesPage(status, { cursor, limit }) {
+    return this.fanRepository.findArticlesPage(status, { cursor, limit });
   }
 
   async getArticleById(id) {

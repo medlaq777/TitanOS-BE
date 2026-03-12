@@ -1,5 +1,5 @@
 import { asyncWrapper } from '../common/asyncWrapper.js';
-import { success, created, noContent } from '../common/response.js';
+import { success, created, noContent, paginated } from '../common/response.js';
 
 export class SportController {
   constructor(sportService) {
@@ -7,8 +7,13 @@ export class SportController {
   }
 
   getAllTeams = asyncWrapper(async (req, res) => {
-    const teams = await this.sportService.getAllTeams();
-    return success(res, teams);
+    const { cursor, limit } = req.query;
+    const page = await this.sportService.getTeamsPage({ cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getTeamById = asyncWrapper(async (req, res) => {
@@ -32,9 +37,13 @@ export class SportController {
   });
 
   getAllMembers = asyncWrapper(async (req, res) => {
-    const { teamId } = req.query;
-    const members = await this.sportService.getAllMembers(teamId);
-    return success(res, members);
+    const { teamId, cursor, limit } = req.query;
+    const page = await this.sportService.getMembersPage(teamId, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getMemberById = asyncWrapper(async (req, res) => {
@@ -68,9 +77,13 @@ export class SportController {
   });
 
   getAllSessions = asyncWrapper(async (req, res) => {
-    const { teamId, from, to } = req.query;
-    const sessions = await this.sportService.getAllSessions(teamId, from, to);
-    return success(res, sessions);
+    const { teamId, from, to, cursor, limit } = req.query;
+    const page = await this.sportService.getSessionsPage(teamId, from, to, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getSessionById = asyncWrapper(async (req, res) => {

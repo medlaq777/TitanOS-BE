@@ -1,5 +1,5 @@
 import { asyncWrapper } from '../common/asyncWrapper.js';
-import { success, created, noContent } from '../common/response.js';
+import { success, created, noContent, paginated } from '../common/response.js';
 
 export class FanController {
   constructor(fanService) {
@@ -12,8 +12,13 @@ export class FanController {
   });
 
   getAllMatches = asyncWrapper(async (req, res) => {
-    const matches = await this.fanService.getAllMatches(req.query.status);
-    return success(res, matches);
+    const { status, cursor, limit } = req.query;
+    const page = await this.fanService.getMatchesPage(status, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getMatchById = asyncWrapper(async (req, res) => {
@@ -57,13 +62,23 @@ export class FanController {
   });
 
   getFanActionsByMatch = asyncWrapper(async (req, res) => {
-    const actions = await this.fanService.getFanActionsByMatch(req.params.matchId);
-    return success(res, actions);
+    const { cursor, limit } = req.query;
+    const page = await this.fanService.getFanActionsByMatchPage(req.params.matchId, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getMyActions = asyncWrapper(async (req, res) => {
-    const actions = await this.fanService.getMyActions(req.user.id);
-    return success(res, actions);
+    const { cursor, limit } = req.query;
+    const page = await this.fanService.getMyActionsPage(req.user.id, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getMatchVotes = asyncWrapper(async (req, res) => {
@@ -77,8 +92,13 @@ export class FanController {
   });
 
   getAllArticles = asyncWrapper(async (req, res) => {
-    const articles = await this.fanService.getAllArticles(req.query.status);
-    return success(res, articles);
+    const { status, cursor, limit } = req.query;
+    const page = await this.fanService.getArticlesPage(status, { cursor, limit });
+    return paginated(res, page.items, {
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+      limit,
+    });
   });
 
   getArticleById = asyncWrapper(async (req, res) => {

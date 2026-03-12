@@ -1,3 +1,5 @@
+import { decodeCursor, toPage } from "../common/pagination.js";
+
 export class FanRepository {
   constructor(prisma) {
     this.prisma = prisma;
@@ -13,16 +15,23 @@ export class FanRepository {
     });
   }
 
-  findAllMatches(filters = {}) {
-    return this.prisma.match.findMany({
-      where: filters,
-      include: {
-        homeTeam: { select: { id: true, name: true } },
-        awayTeam: { select: { id: true, name: true } },
-        events: { orderBy: { minute: 'asc' } },
-      },
-      orderBy: { scheduledAt: 'asc' },
-    });
+  findMatchesPage(filters, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.match
+      .findMany({
+        where: filters,
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        include: {
+          homeTeam: { select: { id: true, name: true } },
+          awayTeam: { select: { id: true, name: true } },
+          events: { orderBy: { minute: "asc" } },
+        },
+        orderBy: [{ scheduledAt: "asc" }, { id: "asc" }],
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
   findMatchById(id) {
@@ -31,7 +40,7 @@ export class FanRepository {
       include: {
         homeTeam: { select: { id: true, name: true } },
         awayTeam: { select: { id: true, name: true } },
-        events: { orderBy: { minute: 'asc' } },
+        events: { orderBy: { minute: "asc" } },
         fanActions: true,
       },
     });
@@ -75,7 +84,7 @@ export class FanRepository {
     return this.prisma.matchEvent.findMany({
       where: { matchId },
       include: { member: { select: { id: true, firstName: true, lastName: true } } },
-      orderBy: { minute: 'asc' },
+      orderBy: { minute: "asc" },
     });
   }
 
@@ -90,22 +99,37 @@ export class FanRepository {
     });
   }
 
-  findFanActionsByMatch(matchId) {
-    return this.prisma.fanAction.findMany({
-      where: { matchId },
-      include: { user: { select: { id: true, email: true } } },
-    });
+  findFanActionsByMatchPage(matchId, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.fanAction
+      .findMany({
+        where: { matchId },
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: { user: { select: { id: true, email: true } } },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
-  findFanActionsByUser(userId) {
-    return this.prisma.fanAction.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  findFanActionsByUserPage(userId, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.fanAction
+      .findMany({
+        where: { userId },
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
   countVotesByMatch(matchId) {
-    return this.prisma.fanAction.count({ where: { matchId, type: 'VOTE' } });
+    return this.prisma.fanAction.count({ where: { matchId, type: "VOTE" } });
   }
 
   createArticle(data) {
@@ -115,12 +139,19 @@ export class FanRepository {
     });
   }
 
-  findAllArticles(status) {
-    return this.prisma.article.findMany({
-      where: status ? { status } : undefined,
-      include: { author: { select: { id: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  findArticlesPage(status, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.article
+      .findMany({
+        where: status ? { status } : undefined,
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: { author: { select: { id: true, email: true } } },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
   findArticleById(id) {

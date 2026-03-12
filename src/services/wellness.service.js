@@ -7,8 +7,8 @@ export class WellnessService {
     this.wellnessRepository = wellnessRepository;
   }
 
-  getAllForms(memberId) {
-    return this.wellnessRepository.findAllForms(memberId);
+  getFormsPage(memberId, { cursor, limit }) {
+    return this.wellnessRepository.findFormsPage(memberId, { cursor, limit });
   }
 
   async getFormById(id) {

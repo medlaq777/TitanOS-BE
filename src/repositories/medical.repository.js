@@ -1,14 +1,23 @@
+import { decodeCursor, toPage } from "../common/pagination.js";
+
 export class MedicalRepository {
   constructor(prisma) {
     this.prisma = prisma;
   }
 
-  findAllRecords(memberId) {
-    return this.prisma.medicalRecord.findMany({
-      where: memberId ? { memberId } : undefined,
-      include: { member: { select: { id: true, firstName: true, lastName: true } } },
-      orderBy: { recordedAt: 'desc' },
-    });
+  findRecordsPage(memberId, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.medicalRecord
+      .findMany({
+        where: memberId ? { memberId } : undefined,
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ recordedAt: "desc" }, { id: "desc" }],
+        include: { member: { select: { id: true, firstName: true, lastName: true } } },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
   findRecordById(id) {

@@ -9,7 +9,7 @@ const COOKIE_OPTIONS = {
   secure: process.env.NODE_ENV === "production",
   sameSite: "strict",
   maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: "/api/auth",
+  path: "/api/v1/auth",
 };
 
 export class AuthController {

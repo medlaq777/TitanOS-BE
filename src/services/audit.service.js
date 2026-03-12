@@ -11,16 +11,17 @@ export class AuditService {
     return this.auditRepository.findByUser(userId);
   }
 
-  getAll(filters = {}) {
+  getAllPage(filters = {}) {
+    const { cursor, limit, ...rest } = filters;
     const where = {};
-    if (filters.userId) where.userId = filters.userId;
-    if (filters.action) where.action = filters.action;
-    if (filters.resource) where.resource = filters.resource;
-    if (filters.from || filters.to) {
+    if (rest.userId) where.userId = rest.userId;
+    if (rest.action) where.action = rest.action;
+    if (rest.resource) where.resource = rest.resource;
+    if (rest.from || rest.to) {
       where.createdAt = {};
-      if (filters.from) where.createdAt.gte = new Date(filters.from);
-      if (filters.to) where.createdAt.lte = new Date(filters.to);
+      if (rest.from) where.createdAt.gte = new Date(rest.from);
+      if (rest.to) where.createdAt.lte = new Date(rest.to);
     }
-    return this.auditRepository.findAll(where);
+    return this.auditRepository.findAllPage(where, { cursor, limit });
   }
 }

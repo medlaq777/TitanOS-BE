@@ -16,8 +16,8 @@ export class MedicalService {
     this.medicalRepository = medicalRepository;
   }
 
-  getAllRecords(memberId) {
-    return this.medicalRepository.findAllRecords(memberId);
+  getRecordsPage(memberId, { cursor, limit }) {
+    return this.medicalRepository.findRecordsPage(memberId, { cursor, limit });
   }
 
   async getRecordById(id) {

@@ -1,3 +1,5 @@
+import { decodeCursor, toPage } from "../common/pagination.js";
+
 export class MediaRepository {
   constructor(prisma) {
     this.prisma = prisma;
@@ -21,28 +23,49 @@ export class MediaRepository {
     return this.prisma.media.findUnique({ where: { objectKey } });
   }
 
-  findAllByOwner(ownerId) {
-    return this.prisma.media.findMany({
-      where: { ownerId },
-      include: { owner: { select: { id: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  findAllByOwnerPage(ownerId, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.media
+      .findMany({
+        where: { ownerId },
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: { owner: { select: { id: true, email: true } } },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
-  findAllByTeam(teamId) {
-    return this.prisma.media.findMany({
-      where: { teamId },
-      include: { owner: { select: { id: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  findAllByTeamPage(teamId, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.media
+      .findMany({
+        where: { teamId },
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: { owner: { select: { id: true, email: true } } },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
-  findAll(filters = {}) {
-    return this.prisma.media.findMany({
-      where: filters,
-      include: { owner: { select: { id: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  findAllPage(where, { cursor, limit }) {
+    const take = limit + 1;
+    const decoded = cursor ? decodeCursor(cursor) : null;
+    return this.prisma.media
+      .findMany({
+        where,
+        take,
+        skip: decoded ? 1 : 0,
+        cursor: decoded ? { id: decoded.id } : undefined,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: { owner: { select: { id: true, email: true } } },
+      })
+      .then((rows) => toPage(rows, limit));
   }
 
   deleteById(id) {

@@ -395,3 +395,15 @@ model Media {
   @@index([teamId])
   @@map("media")
 }
+
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  scopeKey     String   @unique @map("scope_key")
+  fingerprint  String
+  statusCode   Int      @map("status_code")
+  responseBody Json?    @map("response_body")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("idempotency_records")
+}
