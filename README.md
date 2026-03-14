@@ -3,13 +3,14 @@
 
 ![TitanOs Logo](logo.png)
 
-Sports management platform REST API built with **Node.js**, **Express**, **Prisma ORM**, and **PostgreSQL**. Supports multi-role authentication, athlete tracking, medical records, wellness analysis with AI, file storage via MinIO, fan engagement, and full audit logging.
+Sports management platform REST API built with **Node.js**, **Express**, **Prisma ORM**, and **PostgreSQL**. All HTTP routes are served under **`/api/v1`**. Features include structured JSON logging for Kubernetes, request correlation IDs, locale-aware error codes, idempotent writes, cursor-based list pagination, multi-role authentication, athlete tracking, medical records, wellness analysis with AI, MinIO file storage, fan engagement with live match WebSockets, and full audit logging.
 
 ---
 
 ## Table of Contents
 
 - [Tech Stack](#tech-stack)
+- [API versioning & conventions](#api-versioning--conventions)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [Database Schema](#database-schema)
@@ -20,6 +21,8 @@ Sports management platform REST API built with **Node.js**, **Express**, **Prism
 - [Docker Setup](#docker-setup)
 - [Running Tests](#running-tests)
 - [API Documentation](#api-documentation)
+- [Observability & operations](#observability--operations)
+- [Real-time (WebSocket)](#real-time-websocket)
 - [Security](#security)
 - [File Storage](#file-storage)
 - [AI Insights](#ai-insights)
@@ -41,8 +44,21 @@ Sports management platform REST API built with **Node.js**, **Express**, **Prism
 | AI | OpenAI API (gpt-4o-mini) with rule-based fallback |
 | Testing | Vitest 4 + Supertest |
 | Documentation | Swagger UI (OpenAPI 3.0) |
+| Logging | Pino (JSON, `LOG_LEVEL`) |
+| Real-time | WebSocket (`ws`) for match updates |
 | Security | Helmet + express-rate-limit + CORS |
 | Containerization | Docker + Docker Compose |
+
+---
+
+## API versioning & conventions
+
+- **Base path:** every REST route is under **`/api/v1`** (for example `GET /api/v1/sport/teams`).
+- **Resource IDs:** path and query IDs use **UUID v4** (PostgreSQL). MongoDB ObjectId is not used; invalid IDs return **400**.
+- **Pagination:** list endpoints accept `cursor` (opaque) and `limit` (1–100, default **20**). Responses include `meta.nextCursor`, `meta.hasMore`, and `meta.limit`.
+- **Idempotency:** on **POST**, **PUT**, and **PATCH**, send **`Idempotency-Key`** (8–256 characters). The first successful response is stored; replays return the same body with header **`Idempotency-Replayed: true`**. Reusing the key with a different body returns **409**.
+- **Tracing:** optional **`X-Request-ID`** or **`X-Correlation-ID`**; the server echoes **`X-Request-ID`** and includes `requestId` in JSON bodies.
+- **Locales:** **`Accept-Language`** (e.g. `fr`) selects translated text for standard `error.code` values where applicable.
 
 ---
 
@@ -58,8 +74,9 @@ Request → Router → Middleware → Controller → Service → Repository → 
 - **Controller** — handles HTTP request/response, calls service
 - **Service** — business logic, orchestrates repositories
 - **Repository** — data access layer, all Prisma queries
-- **Common** — shared utilities (errors, validation, JWT, response helpers)
-- **Middlewares** — auth guard, roles guard, audit log, rate limiter, file upload
+- **Common** — shared utilities (errors, validation, JWT, response helpers, i18n, pagination, logger)
+- **Routes** — `src/routes/api.js` mounts health/ready and feature routers under one stack
+- **Middlewares** — auth guard, roles guard, audit log, rate limiter, file upload, request context (correlation IDs), HTTP access logger, idempotency, UUID param validation, global error handler
 
 ---
 
@@ -68,13 +85,16 @@ Request → Router → Middleware → Controller → Service → Repository → 
 ```text
 Backend/
 ├── src/
-│   ├── app.js                      # Express app (routes, middleware, security)
-│   ├── server.js                   # Server startup
+│   ├── app.js                      # Express app (/api/v1 mount, CORS, security)
+│   ├── server.js                   # Server startup + WebSocket attach
 │   ├── common/
 │   │   ├── asyncWrapper.js         # Async error propagation helper
-│   │   ├── errors.js               # Custom error classes
+│   │   ├── errors.js               # Custom error classes (+ stable error codes)
+│   │   ├── i18n.js                 # Locale messages for error codes
 │   │   ├── jwt.js                  # JWT sign/verify helpers
-│   │   ├── response.js             # Standard response formatters
+│   │   ├── logger.js               # Pino JSON logger
+│   │   ├── pagination.js         # Cursor encode/decode + page helper
+│   │   ├── response.js             # Standard response formatters (+ requestId)
 │   │   ├── roles.js                # Role constants
 │   │   └── validate.js             # Zod validation wrapper
 │   ├── config/
@@ -90,15 +110,26 @@ Backend/
 │   │   ├── authGuard.js            # JWT token verification
 │   │   ├── rolesGuard.js           # Role-based access factory
 │   │   ├── auditLog.js             # Action audit middleware
+│   │   ├── apiVersion.js           # Sets apiVersion in response envelope
+│   │   ├── httpLogger.js           # JSON request log on response finish
+│   │   ├── idempotency.js          # Idempotency-Key for writes
+│   │   ├── requestContext.js       # X-Request-ID + Accept-Language
 │   │   ├── rateLimiter.js          # API + auth rate limiters
 │   │   ├── upload.js               # Multer file upload config
+│   │   ├── uuidParams.js           # UUID validation on :id route params
+│   │   ├── validateRequest.js      # Zod query/body validation
 │   │   └── globalHandlers.js       # 404 + centralized error handler
+│   ├── routes/
+│   │   └── api.js                  # Health, readiness, mounts feature routers
+│   ├── realtime/
+│   │   └── matchHub.js             # WebSocket hub for match broadcasts
 │   └── tests/
 │       ├── unit/                   # Unit tests
 │       └── integration/            # Integration tests
 ├── prisma/
 │   ├── schema.prisma               # Database schema + enums + relations
 │   └── seed.js                     # Database seed script
+│   # Migrations: create locally with `npx prisma migrate dev` (not bundled in repo)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
@@ -272,6 +303,17 @@ Backend/
 | ipAddress | String? | |
 | createdAt | DateTime | |
 
+#### IdempotencyRecord
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| id | String (UUID) | Primary key |
+| scopeKey | String | Unique `Idempotency-Key` header value |
+| fingerprint | String | Hash of method + URL + body |
+| statusCode | Int | Stored HTTP status |
+| responseBody | Json? | Stored JSON response (204 has null) |
+| createdAt | DateTime | Creation time |
+
 #### Article
 
 | Field | Type | Notes |
@@ -298,9 +340,9 @@ Backend/
 
 ## API Endpoints
 
-All endpoints are prefixed with `/api`.
+All endpoints are prefixed with **`/api/v1`**.
 
-### Auth — `/api/auth`
+### Auth — `/api/v1/auth`
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
@@ -309,7 +351,7 @@ All endpoints are prefixed with `/api`.
 | POST | `/refresh` | Public | Rotate refresh token, returns new `accessToken` |
 | POST | `/logout` | Bearer | Invalidate refresh token |
 
-### Sport — `/api/sport`
+### Sport — `/api/v1/sport`
 
 **All routes require Bearer token.**
 
@@ -359,7 +401,7 @@ All endpoints are prefixed with `/api`.
 | PUT | `/performances/:id` | ADMIN, STAFF | Update performance |
 | DELETE | `/performances/:id` | ADMIN | Delete performance |
 
-### Medical — `/api/medical`
+### Medical — `/api/v1/medical`
 
 **All routes require Bearer token + role `ADMIN` or `STAFF`.**
 
@@ -373,7 +415,7 @@ All endpoints are prefixed with `/api`.
 | PUT | `/records/:id` | Update record |
 | DELETE | `/records/:id` | Delete record |
 
-### Wellness — `/api/wellness`
+### Wellness — `/api/v1/wellness`
 
 **All routes require Bearer token.**
 
@@ -386,7 +428,7 @@ All endpoints are prefixed with `/api`.
 | PUT | `/forms/:id` | ADMIN, STAFF | Update form |
 | DELETE | `/forms/:id` | ADMIN | Delete form |
 
-### Media — `/api/media`
+### Media — `/api/v1/media`
 
 **All routes require Bearer token.**
 
@@ -401,7 +443,7 @@ All endpoints are prefixed with `/api`.
 
 **Upload fields:** `file` (binary), `type` (IMAGE/VIDEO/DOCUMENT/TACTICAL), `access` (PUBLIC/PRIVATE/TEAM), `teamId` (optional)
 
-### Fan — `/api/fan`
+### Fan — `/api/v1/fan`
 
 **All routes require Bearer token.**
 
@@ -442,7 +484,7 @@ All endpoints are prefixed with `/api`.
 | PATCH | `/articles/:id` | ADMIN, STAFF | Update article |
 | DELETE | `/articles/:id` | ADMIN | Delete article |
 
-### AI Insights — `/api/ai`
+### AI Insights — `/api/v1/ai`
 
 **All routes require Bearer token + role `ADMIN` or `STAFF`.**
 
@@ -463,7 +505,7 @@ All endpoints are prefixed with `/api`.
 }
 ```
 
-### Audit — `/api/audit`
+### Audit — `/api/v1/audit`
 
 **All routes require Bearer token + role `ADMIN`.**
 
@@ -476,8 +518,9 @@ All endpoints are prefixed with `/api`.
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/api/health` | Public | Health check (status, uptime, timestamp) |
-| GET | `/api/docs` | Public (dev only) | Swagger UI |
+| GET | `/api/v1/health` | Public | Liveness (process up, uptime) |
+| GET | `/api/v1/ready` | Public | Readiness (`SELECT 1` on DB; **503** if DB unavailable) |
+| GET | `/api/v1/docs` | Public (dev only) | Swagger UI (disabled in `NODE_ENV=production`) |
 
 ---
 
@@ -486,9 +529,9 @@ All endpoints are prefixed with `/api`.
 ### Token Strategy
 
 ```text
-POST /api/auth/login
+POST /api/v1/auth/login
   → returns { accessToken } in response body
-  → sets refreshToken as HttpOnly cookie
+  → sets refreshToken as HttpOnly cookie (path `/api/v1/auth`)
 ```
 
 - **Access Token** — short-lived (15 min), sent as `Authorization: Bearer <token>` header
@@ -497,7 +540,7 @@ POST /api/auth/login
 ### Token Rotation
 
 ```text
-POST /api/auth/refresh
+POST /api/v1/auth/refresh
   → reads refreshToken from cookie
   → verifies token hash against DB
   → issues new accessToken + new refreshToken (rotation)
@@ -529,6 +572,7 @@ Copy `.env.example` to `.env` and fill in your values.
 # Server
 PORT=3001
 NODE_ENV=development
+LOG_LEVEL=info
 
 # Database
 DATABASE_URL=postgresql://user:password@localhost:5432/titanos_db
@@ -587,8 +631,9 @@ cp .env.example .env
 # Generate Prisma client
 npm run db:generate
 
-# Run database migrations
+# Create schema in the database (choose one)
 npm run db:migrate
+# or: npm run db:push
 
 # Seed the database (optional)
 npm run db:seed
@@ -614,6 +659,7 @@ The server starts on `http://localhost:3001`.
 | `npm test` | Run all tests once |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Generate test coverage report |
+| `npm run lint` | Run ESLint (zero warnings) |
 
 ---
 
@@ -676,18 +722,12 @@ npm run test:coverage
 
 ```text
 src/tests/
-├── unit/
-│   ├── auth.schemas.test.js       # Zod schema validation
-│   ├── computeRiskLevel.test.js   # Risk level scoring logic
-│   ├── errors.test.js             # Custom error classes
-│   └── validate.test.js           # Validation wrapper
-└── integration/
-    ├── auth.routes.test.js        # Auth endpoints (register, login, refresh, logout)
-    ├── medical.access.test.js     # Medical role-based access control
-    └── roles.test.js              # Role guard enforcement
+├── unit/           # Vitest: schemas, services, controllers, matchHub, uuidParams, …
+├── integration/    # Supertest: auth.routes, roles, medical/sport access, *.app tests
+└── helpers/        # fullApp.js and shared test utilities
 ```
 
-Integration tests mock the Prisma client via `vi.mock()` and use `supertest` to make HTTP requests against the Express app.
+Integration tests call routes under **`/api/v1`**. The Prisma client is mocked where appropriate via `vi.mock()`.
 
 ---
 
@@ -696,10 +736,32 @@ Integration tests mock the Prisma client via `vi.mock()` and use `supertest` to 
 Swagger UI is available in development mode at:
 
 ```text
-http://localhost:3001/api/docs
+http://localhost:3001/api/v1/docs
 ```
 
-The spec is defined in [src/config/swagger.js](src/config/swagger.js) using OpenAPI 3.0. All endpoints are documented with request/response schemas and role requirements.
+The spec is defined in [src/config/swagger.js](src/config/swagger.js) using OpenAPI 3.0. It describes headers (`Idempotency-Key`, `Accept-Language`, tracing), pagination, and error shape.
+
+---
+
+## Observability & operations
+
+| Concern | Behavior |
+| --- | --- |
+| **Logs** | Pino writes **JSON** lines to stdout (fields include `level`, `time`, `service`, and per-request fields from `httpLogger`: `requestId`, `method`, `path`, `statusCode`, `durationMs`, `locale`). Set `LOG_LEVEL` (e.g. `info`, `debug`, `error`). |
+| **Kubernetes** | Use **`GET /api/v1/health`** for liveness and **`GET /api/v1/ready`** for readiness (DB check). |
+| **Correlation** | Send **`X-Request-ID`** or **`X-Correlation-ID`**; response echoes **`X-Request-ID`** and JSON payloads include **`requestId`**. |
+
+---
+
+## Real-time (WebSocket)
+
+Live match updates use a **WebSocket** endpoint on the same HTTP server as the API (not under `/api/v1`):
+
+```text
+ws://<host>:<port>/ws?token=<JWT_ACCESS_TOKEN>
+```
+
+After connecting, send JSON: `{"action":"subscribe","matchId":"<uuid>"}`. Fan module updates can broadcast score and timeline events to subscribed clients. Unauthorized connections are closed with code **4401**.
 
 ---
 
@@ -708,8 +770,8 @@ The spec is defined in [src/config/swagger.js](src/config/swagger.js) using Open
 | Feature | Implementation |
 | --- | --- |
 | Security headers | `helmet` (14 headers: CSP, HSTS, X-Frame-Options, etc.) |
-| Rate limiting | `express-rate-limit` — 100 req/15min global, 10 req/15min for auth |
-| CORS | Configurable origin allowlist with credentials support |
+| Rate limiting | `express-rate-limit` — 100 req/15min global, 10 req/15min for auth; JSON body includes `error.code` (e.g. `RATE_LIMIT`) |
+| CORS | Configurable origin allowlist; allows `Authorization`, `X-Request-ID`, `X-Correlation-ID`, `Idempotency-Key`, `Accept-Language` |
 | Password hashing | `bcryptjs` with cost factor 12 |
 | Refresh token hashing | `bcryptjs` with cost factor 10 |
 | JWT | Short-lived access tokens (15m) + HttpOnly refresh cookie (7d) |
@@ -720,12 +782,16 @@ The spec is defined in [src/config/swagger.js](src/config/swagger.js) using Open
 
 ### Error Response Format
 
-All errors return a consistent JSON structure:
+Errors return a consistent JSON structure (success responses include `requestId`, `timestamp`, and `apiVersion` where applicable):
 
 ```json
 {
   "success": false,
-  "message": "Human-readable error message"
+  "data": null,
+  "message": "Human-readable error message",
+  "error": { "code": "VALIDATION_ERROR" },
+  "timestamp": "2026-04-01T12:00:00.000Z",
+  "requestId": "uuid"
 }
 ```
 
@@ -748,7 +814,7 @@ Files are stored in MinIO (S3-compatible).
 ### Upload Flow
 
 ```text
-Client → POST /api/media/upload (multipart/form-data)
+Client → POST /api/v1/media/upload (multipart/form-data)
   → Multer parses file into memory (max 50 MB)
   → Validate MIME type (allowlist)
   → Ensure bucket exists
@@ -768,7 +834,7 @@ Client → POST /api/media/upload (multipart/form-data)
 ### Presigned URLs
 
 ```text
-GET /api/media/:id/presigned-url?expirySeconds=900
+GET /api/v1/media/:id/presigned-url?expirySeconds=900
 ```
 
 - Default expiry: 900 seconds (15 minutes)
@@ -784,7 +850,7 @@ The AI module analyses wellness form data and generates risk assessments.
 ### Analysis Flow
 
 ```text
-POST /api/ai/analyze { memberId, dataWindow }
+POST /api/v1/ai/analyze { memberId, dataWindow }
   → Fetch recent wellness forms (last N days)
   → Aggregate: avgFatigue, avgSleep, avgStress, avgMood
   → If OPENAI_API_KEY is set → call OpenAI GPT-4o-mini
@@ -828,4 +894,4 @@ Logs are written **asynchronously after the response** (non-blocking). Only succ
 | ipAddress | Client IP address |
 | createdAt | Timestamp |
 
-Audit logs are accessible at `GET /api/audit` (ADMIN only).
+Audit logs are accessible at `GET /api/v1/audit` (ADMIN only).
