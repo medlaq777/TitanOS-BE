@@ -47,6 +47,10 @@ const { prismaMock } = vi.hoisted(() => {
       create: vi.fn(),
       findMany: vi.fn(),
     },
+    idempotencyRecord: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
     user: {
       findUnique: vi.fn(),
       create: vi.fn(),
@@ -79,28 +83,29 @@ describe("Sport API (full app)", () => {
     vi.clearAllMocks();
   });
 
-  it("GET /api/sport/teams returns teams", async () => {
+  it("GET /api/v1/sport/teams returns teams", async () => {
     prismaMock.team.findMany.mockResolvedValue([{ id: teamId, name: "A", sport: "soccer", members: [] }]);
 
-    const res = await request(getFullApp()).get("/api/sport/teams").set(auth);
+    const res = await request(getFullApp()).get("/api/v1/sport/teams").set(auth);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data).toHaveLength(1);
+    expect(res.body.meta).toMatchObject({ hasMore: false, limit: 20 });
     expect(prismaMock.team.findMany).toHaveBeenCalled();
   });
 
-  it("GET /api/sport/teams/:id returns a team", async () => {
+  it("GET /api/v1/sport/teams/:id returns a team", async () => {
     prismaMock.team.findUnique.mockResolvedValue({ id: teamId, name: "A", sport: "soccer", members: [] });
 
-    const res = await request(getFullApp()).get(`/api/sport/teams/${teamId}`).set(auth);
+    const res = await request(getFullApp()).get(`/api/v1/sport/teams/${teamId}`).set(auth);
 
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(teamId);
   });
 
-  it("GET /api/sport/members rejects invalid teamId query", async () => {
-    const res = await request(getFullApp()).get("/api/sport/members").query({ teamId: "not-a-uuid" }).set(auth);
+  it("GET /api/v1/sport/members rejects invalid teamId query", async () => {
+    const res = await request(getFullApp()).get("/api/v1/sport/members").query({ teamId: "not-a-uuid" }).set(auth);
 
     expect(res.status).toBe(400);
   });

@@ -12,6 +12,7 @@ describe('AppError hierarchy', () => {
   it('ValidationError has statusCode 400', () => {
     const err = new ValidationError('bad input');
     expect(err.statusCode).toBe(400);
+    expect(err.code).toBe('VALIDATION_ERROR');
     expect(err instanceof AppError).toBe(true);
   });
 

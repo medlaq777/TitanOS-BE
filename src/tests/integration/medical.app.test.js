@@ -47,6 +47,10 @@ const { prismaMock } = vi.hoisted(() => {
       create: vi.fn(),
       findMany: vi.fn(),
     },
+    idempotencyRecord: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
     user: {
       findUnique: vi.fn(),
       create: vi.fn(),
@@ -81,7 +85,7 @@ describe("Medical API (full app)", () => {
     prismaMock.auditLog.create.mockResolvedValue({ id: "audit-1" });
   });
 
-  it("GET /api/medical/records returns records", async () => {
+  it("GET /api/v1/medical/records returns records", async () => {
     prismaMock.medicalRecord.findMany.mockResolvedValue([
       {
         id: recordId,
@@ -92,15 +96,16 @@ describe("Medical API (full app)", () => {
       },
     ]);
 
-    const res = await request(getFullApp()).get("/api/medical/records").set(auth);
+    const res = await request(getFullApp()).get("/api/v1/medical/records").set(auth);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data).toHaveLength(1);
+    expect(res.body.meta).toMatchObject({ hasMore: false, limit: 20 });
   });
 
-  it("GET /api/medical/records/:id returns a record", async () => {
+  it("GET /api/v1/medical/records/:id returns a record", async () => {
     prismaMock.medicalRecord.findUnique.mockResolvedValue({
       id: recordId,
       memberId,
@@ -109,13 +114,13 @@ describe("Medical API (full app)", () => {
       member: { id: memberId, firstName: "A", lastName: "B" },
     });
 
-    const res = await request(getFullApp()).get(`/api/medical/records/${recordId}`).set(auth);
+    const res = await request(getFullApp()).get(`/api/v1/medical/records/${recordId}`).set(auth);
 
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(recordId);
   });
 
-  it("POST /api/medical/records creates a record and audit log", async () => {
+  it("POST /api/v1/medical/records creates a record and audit log", async () => {
     const created = {
       id: recordId,
       memberId,
@@ -126,7 +131,7 @@ describe("Medical API (full app)", () => {
     prismaMock.medicalRecord.create.mockResolvedValue(created);
 
     const res = await request(getFullApp())
-      .post("/api/medical/records")
+      .post("/api/v1/medical/records")
       .set(auth)
       .send({
         memberId,

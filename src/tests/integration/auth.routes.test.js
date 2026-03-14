@@ -22,25 +22,25 @@ function buildApp() {
   const app = express();
   app.use(express.json());
   app.use(cookieParser());
-  app.use('/api/auth', authRouter);
+  app.use('/api/v1/auth', authRouter);
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;
 }
 
-describe('POST /api/auth/register', () => {
+describe('POST /api/v1/auth/register', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('returns 400 when email is missing', async () => {
     const res = await request(buildApp())
-      .post('/api/auth/register')
+      .post('/api/v1/auth/register')
       .send({ password: 'password123' });
     expect(res.status).toBe(400);
   });
 
   it('returns 400 when password is too short', async () => {
     const res = await request(buildApp())
-      .post('/api/auth/register')
+      .post('/api/v1/auth/register')
       .send({ email: 'test@test.com', password: 'short' });
     expect(res.status).toBe(400);
   });
@@ -50,7 +50,7 @@ describe('POST /api/auth/register', () => {
     prisma.user.create.mockResolvedValue({ id: 'uuid-1', email: 'test@test.com', role: 'PLAYER' });
 
     const res = await request(buildApp())
-      .post('/api/auth/register')
+      .post('/api/v1/auth/register')
       .send({ email: 'test@test.com', password: 'password123' });
     expect(res.status).toBe(201);
     // response wrapped in { success, data } by created() helper
@@ -59,16 +59,16 @@ describe('POST /api/auth/register', () => {
   });
 });
 
-describe('POST /api/auth/login', () => {
+describe('POST /api/v1/auth/login', () => {
   it('returns 400 on missing credentials', async () => {
-    const res = await request(buildApp()).post('/api/auth/login').send({});
+    const res = await request(buildApp()).post('/api/v1/auth/login').send({});
     expect(res.status).toBe(400);
   });
 
   it('returns 401 on wrong credentials', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
     const res = await request(buildApp())
-      .post('/api/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: 'bad@test.com', password: 'wrongpassword' });
     expect(res.status).toBe(401);
   });
@@ -77,7 +77,7 @@ describe('POST /api/auth/login', () => {
 describe('Protected routes', () => {
   it('returns 401 when no token provided on logout', async () => {
     // authGuard throws UnauthorizedError -> errorHandler returns 401
-    const res = await request(buildApp()).post('/api/auth/logout');
+    const res = await request(buildApp()).post('/api/v1/auth/logout');
     expect([401, 500]).toContain(res.status); // 401 expected; 500 acceptable in mock env
   });
 });

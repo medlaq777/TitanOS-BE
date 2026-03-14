@@ -11,9 +11,9 @@ function buildApp(role) {
   app.use((req, _res, next) => { req.user = { id: 'u1', role }; next(); });
 
   // Medical records — ADMIN and STAFF only
-  app.get('/api/medical/records', rolesGuard('ADMIN', 'STAFF'), (_req, res) => res.json([]));
-  app.post('/api/medical/records', rolesGuard('ADMIN', 'STAFF'), (_req, res) => res.status(201).json({}));
-  app.delete('/api/medical/records/:id', rolesGuard('ADMIN'), (_req, res) => res.status(204).send());
+  app.get('/api/v1/medical/records', rolesGuard('ADMIN', 'STAFF'), (_req, res) => res.json([]));
+  app.post('/api/v1/medical/records', rolesGuard('ADMIN', 'STAFF'), (_req, res) => res.status(201).json({}));
+  app.delete('/api/v1/medical/records/:id', rolesGuard('ADMIN'), (_req, res) => res.status(204).send());
 
   app.use(errorHandler);
   return app;
@@ -21,27 +21,27 @@ function buildApp(role) {
 
 describe('Medical module access security', () => {
   it('ADMIN can read medical records', async () => {
-    const res = await request(buildApp('ADMIN')).get('/api/medical/records');
+    const res = await request(buildApp('ADMIN')).get('/api/v1/medical/records');
     expect(res.status).toBe(200);
   });
 
   it('STAFF can read medical records', async () => {
-    const res = await request(buildApp('STAFF')).get('/api/medical/records');
+    const res = await request(buildApp('STAFF')).get('/api/v1/medical/records');
     expect(res.status).toBe(200);
   });
 
   it('PLAYER cannot read medical records', async () => {
-    const res = await request(buildApp('PLAYER')).get('/api/medical/records');
+    const res = await request(buildApp('PLAYER')).get('/api/v1/medical/records');
     expect(res.status).toBe(403);
   });
 
   it('FAN cannot read medical records', async () => {
-    const res = await request(buildApp('FAN')).get('/api/medical/records');
+    const res = await request(buildApp('FAN')).get('/api/v1/medical/records');
     expect(res.status).toBe(403);
   });
 
   it('only ADMIN can delete medical records', async () => {
-    const res = await request(buildApp('STAFF')).delete('/api/medical/records/some-id');
+    const res = await request(buildApp('STAFF')).delete('/api/v1/medical/records/some-id');
     expect(res.status).toBe(403);
   });
 });
