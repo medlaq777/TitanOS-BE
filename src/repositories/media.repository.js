@@ -1,4 +1,4 @@
-export class AuthService {
+export class MediaRepository {
   constructor(prisma) {
     this.prisma = prisma;
   }

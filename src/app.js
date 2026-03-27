@@ -4,11 +4,11 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
-import authRouter from "./modules/auth/auth.routes.js";
-import sportRouter from "./modules/sport/sport.routes.js";
-import medicalRouter from "./modules/medical/medical.routes.js";
-import mediaRouter from "./modules/media/media.routes.js";
-import fanRouter from "./modules/fan/fan.routes.js";
+import authRouter from "./routers/auth.routes.js";
+import sportRouter from "./routers/sport.routes.js";
+import medicalRouter from "./routers/medical.routes.js";
+import mediaRouter from "./routers/media.routes.js";
+import fanRouter from "./routers/fan.routes.js";
 
 const app = express();
 

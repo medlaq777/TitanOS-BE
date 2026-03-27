@@ -1,4 +1,4 @@
-export class SportService {
+export class SportRepository {
   constructor(prisma) {
     this.prisma = prisma;
   }
