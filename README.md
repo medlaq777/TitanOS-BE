@@ -1,9 +1,7 @@
 
 # TitanOs Backend
 
-<p align="center">
-  <img src="logo.png" alt="TitanOs Logo" width="180" />
-</p>
+![TitanOs Logo](logo.png)
 
 Sports management platform REST API built with **Node.js**, **Express**, **Prisma ORM**, and **PostgreSQL**. Supports multi-role authentication, athlete tracking, medical records, wellness analysis with AI, file storage via MinIO, fan engagement, and full audit logging.
 
@@ -32,7 +30,7 @@ Sports management platform REST API built with **Node.js**, **Express**, **Prism
 ## Tech Stack
 
 | Layer | Technology |
-|---|---|
+| --- | --- |
 | Runtime | Node.js 20 (ES Modules) |
 | Framework | Express 4.18 |
 | ORM | Prisma 5.7 |
@@ -52,7 +50,7 @@ Sports management platform REST API built with **Node.js**, **Express**, **Prism
 
 The backend follows a strict **layered architecture** with dependency injection:
 
-```
+```text
 Request → Router → Middleware → Controller → Service → Repository → Prisma → DB
 ```
 
@@ -67,7 +65,7 @@ Request → Router → Middleware → Controller → Service → Repository → 
 
 ## Project Structure
 
-```
+```text
 Backend/
 ├── src/
 │   ├── app.js                      # Express app (routes, middleware, security)
@@ -114,7 +112,7 @@ Backend/
 ### Enums
 
 | Enum | Values |
-|---|---|
+| --- | --- |
 | `Role` | `ADMIN`, `STAFF`, `PLAYER`, `FAN` |
 | `MemberType` | `PLAYER`, `COACH`, `STAFF` |
 | `SessionType` | `TRAINING`, `MATCH`, `MEETING` |
@@ -130,8 +128,9 @@ Backend/
 ### Models
 
 #### User
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | email | String | Unique |
 | passwordHash | String | bcrypt cost 12 |
@@ -140,8 +139,9 @@ Backend/
 | createdAt, updatedAt | DateTime | Auto-managed |
 
 #### Member
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | userId | String | Unique FK → User |
 | firstName, lastName | String | |
@@ -151,16 +151,18 @@ Backend/
 | teamId | String? | FK → Team |
 
 #### Team
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | name | String | Unique |
 | sport | String | |
 | logoUrl | String? | |
 
 #### Session
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | title | String | |
 | type | SessionType | |
@@ -170,8 +172,9 @@ Backend/
 | teamId | String | FK → Team |
 
 #### Match
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | homeTeamId, awayTeamId | String | FK → Team |
 | homeScore, awayScore | Int | Default 0 |
@@ -180,8 +183,9 @@ Backend/
 | venue | String? | |
 
 #### MatchEvent
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | matchId | String | FK → Match |
 | memberId | String? | FK → Member |
@@ -190,8 +194,9 @@ Backend/
 | detail | String? | |
 
 #### MedicalRecord
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | memberId | String | FK → Member |
 | diagnosis | String | |
@@ -202,8 +207,9 @@ Backend/
 | createdBy | String | User ID |
 
 #### WellnessForm
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | memberId | String | FK → Member |
 | fatigue | Int | 1–10 scale |
@@ -214,8 +220,9 @@ Backend/
 | date | DateTime | |
 
 #### AIInsight
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | memberId | String | FK → Member |
 | riskLevel | RiskLevel | `LOW`, `MEDIUM`, `HIGH` |
@@ -224,9 +231,10 @@ Backend/
 | dataWindow | Int | Days of data analysed |
 | generatedAt | DateTime | |
 
-#### Performance
+#### Performance Record
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | memberId | String | FK → Member |
 | sessionId | String? | FK → Session |
@@ -237,8 +245,9 @@ Backend/
 | recordedAt | DateTime | |
 
 #### Media
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | filename | String | |
 | fileUrl | String | |
@@ -252,8 +261,9 @@ Backend/
 | teamId | String? | FK → Team |
 
 #### AuditLog
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | userId | String | FK → User |
 | action | String | e.g. `LOGIN`, `CREATE` |
@@ -263,8 +273,9 @@ Backend/
 | createdAt | DateTime | |
 
 #### Article
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | title | String | |
 | content | String | |
@@ -274,8 +285,9 @@ Backend/
 | publishedAt | DateTime? | |
 
 #### FanAction
+
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | id | String (UUID) | Primary key |
 | userId | String | FK → User |
 | matchId | String? | FK → Match |
@@ -291,7 +303,7 @@ All endpoints are prefixed with `/api`.
 ### Auth — `/api/auth`
 
 | Method | Path | Auth | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | POST | `/register` | Public | Register a new user |
 | POST | `/login` | Public | Login, returns `accessToken` + sets HttpOnly `refreshToken` cookie |
 | POST | `/refresh` | Public | Rotate refresh token, returns new `accessToken` |
@@ -301,18 +313,20 @@ All endpoints are prefixed with `/api`.
 
 **All routes require Bearer token.**
 
-#### Teams
+#### Sport Teams
+
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | GET | `/teams` | All | List all teams |
 | GET | `/teams/:id` | All | Get team by ID |
 | POST | `/teams` | ADMIN, STAFF | Create team |
 | PUT | `/teams/:id` | ADMIN, STAFF | Update team |
 | DELETE | `/teams/:id` | ADMIN | Delete team |
 
-#### Members
+#### Sport Members
+
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | GET | `/members` | All | List all members |
 | GET | `/members/:id` | All | Get member by ID |
 | POST | `/members` | ADMIN, STAFF | Create member |
@@ -321,9 +335,10 @@ All endpoints are prefixed with `/api`.
 | PATCH | `/members/:id/team` | ADMIN, STAFF | Link member to team |
 | DELETE | `/members/:id/team` | ADMIN, STAFF | Unlink member from team |
 
-#### Sessions
+#### Sport Sessions
+
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | GET | `/sessions` | All | List all sessions |
 | GET | `/sessions/:id` | All | Get session by ID |
 | POST | `/sessions` | ADMIN, STAFF | Create session |
@@ -333,9 +348,10 @@ All endpoints are prefixed with `/api`.
 | DELETE | `/sessions/:id/participants/:memberId` | ADMIN, STAFF | Remove participant |
 | GET | `/sessions/:id/performances` | All | Get session performances |
 
-#### Performance
+#### Sport Performance
+
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | GET | `/members/:memberId/stats` | All | Player statistics summary |
 | GET | `/members/:memberId/performances` | All | Member performance history |
 | GET | `/performances/:id` | All | Get performance by ID |
@@ -348,7 +364,7 @@ All endpoints are prefixed with `/api`.
 **All routes require Bearer token + role `ADMIN` or `STAFF`.**
 
 | Method | Path | Description |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/records` | List all medical records |
 | GET | `/records/:id` | Get record by ID |
 | GET | `/records/:id/signed-url` | Generate signed URL for attached file |
@@ -362,7 +378,7 @@ All endpoints are prefixed with `/api`.
 **All routes require Bearer token.**
 
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | GET | `/forms` | ADMIN, STAFF | List all wellness forms |
 | GET | `/forms/:id` | ADMIN, STAFF | Get form by ID |
 | GET | `/members/:memberId/recent` | ADMIN, STAFF | Get recent forms for member |
@@ -375,7 +391,7 @@ All endpoints are prefixed with `/api`.
 **All routes require Bearer token.**
 
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | POST | `/upload` | ADMIN, STAFF, PLAYER | Upload file (multipart/form-data) |
 | GET | `/` | All | List accessible media |
 | GET | `/team/:teamId` | ADMIN, STAFF | Get media by team |
@@ -389,33 +405,37 @@ All endpoints are prefixed with `/api`.
 
 **All routes require Bearer token.**
 
-#### Matches
+#### Fan Matches
+
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | POST | `/matches` | ADMIN, STAFF | Create match |
 | GET | `/matches` | All | List all matches |
 | GET | `/matches/:id` | All | Get match with events |
 | PATCH | `/matches/:id` | ADMIN, STAFF | Update match score/status |
 | DELETE | `/matches/:id` | ADMIN | Delete match |
 
-#### Match Events
+#### Fan Match Events
+
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | POST | `/events` | ADMIN, STAFF | Add match event (goal, card, etc.) |
 | GET | `/matches/:matchId/events` | All | Get match event timeline |
 | DELETE | `/events/:id` | ADMIN, STAFF | Delete match event |
 
 #### Fan Actions
+
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | POST | `/actions` | All | Submit fan action (vote/like/share/ticket) |
 | GET | `/actions/me` | All | Get own fan actions |
 | GET | `/matches/:matchId/actions` | ADMIN, STAFF | Get all actions for match |
 | GET | `/matches/:matchId/votes` | All | Get match vote counts |
 
-#### Articles
+#### Fan Articles
+
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | POST | `/articles` | ADMIN, STAFF | Create article |
 | GET | `/articles` | All | List published articles |
 | GET | `/articles/:id` | All | Get article by ID |
@@ -427,7 +447,7 @@ All endpoints are prefixed with `/api`.
 **All routes require Bearer token + role `ADMIN` or `STAFF`.**
 
 | Method | Path | Roles | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | POST | `/analyze` | ADMIN, STAFF | Trigger wellness analysis for a member |
 | GET | `/members/:memberId/insights` | ADMIN, STAFF | List all insights for member |
 | GET | `/members/:memberId/insights/latest` | ADMIN, STAFF | Latest insight for member |
@@ -435,6 +455,7 @@ All endpoints are prefixed with `/api`.
 | DELETE | `/insights/:id` | ADMIN | Delete insight |
 
 **Analyze request body:**
+
 ```json
 {
   "memberId": "uuid",
@@ -447,14 +468,14 @@ All endpoints are prefixed with `/api`.
 **All routes require Bearer token + role `ADMIN`.**
 
 | Method | Path | Description |
-|---|---|---|
+| --- | --- | --- |
 | GET | `/` | List all audit logs |
 | GET | `/users/:userId` | Get audit logs for a specific user |
 
 ### System
 
 | Method | Path | Auth | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | GET | `/api/health` | Public | Health check (status, uptime, timestamp) |
 | GET | `/api/docs` | Public (dev only) | Swagger UI |
 
@@ -464,7 +485,7 @@ All endpoints are prefixed with `/api`.
 
 ### Token Strategy
 
-```
+```text
 POST /api/auth/login
   → returns { accessToken } in response body
   → sets refreshToken as HttpOnly cookie
@@ -475,7 +496,7 @@ POST /api/auth/login
 
 ### Token Rotation
 
-```
+```text
 POST /api/auth/refresh
   → reads refreshToken from cookie
   → verifies token hash against DB
@@ -485,7 +506,7 @@ POST /api/auth/refresh
 ### Roles
 
 | Role | Description |
-|---|---|
+| --- | --- |
 | `ADMIN` | Full access to all resources |
 | `STAFF` | Read/write access; cannot delete or access audit logs |
 | `PLAYER` | Can submit wellness forms, upload media, view own data |
@@ -581,7 +602,7 @@ The server starts on `http://localhost:3001`.
 ### Available Scripts
 
 | Script | Description |
-|---|---|
+| --- | --- |
 | `npm start` | Start production server |
 | `npm run dev` | Start dev server with hot reload (nodemon) |
 | `npm run db:generate` | Generate Prisma client from schema |
@@ -611,10 +632,10 @@ docker compose logs -f api
 docker compose down
 ```
 
-### Services
+### Docker Services
 
 | Service | Port | Description |
-|---|---|---|
+| --- | --- | --- |
 | `api` | 3001 | TitanOs backend |
 | `postgres` | 5432 | PostgreSQL database |
 | `minio` | 9000 | MinIO S3 storage |
@@ -653,7 +674,7 @@ npm run test:coverage
 
 ### Test Structure
 
-```
+```text
 src/tests/
 ├── unit/
 │   ├── auth.schemas.test.js       # Zod schema validation
@@ -674,7 +695,7 @@ Integration tests mock the Prisma client via `vi.mock()` and use `supertest` to 
 
 Swagger UI is available in development mode at:
 
-```
+```text
 http://localhost:3001/api/docs
 ```
 
@@ -685,7 +706,7 @@ The spec is defined in [src/config/swagger.js](src/config/swagger.js) using Open
 ## Security
 
 | Feature | Implementation |
-|---|---|
+| --- | --- |
 | Security headers | `helmet` (14 headers: CSP, HSTS, X-Frame-Options, etc.) |
 | Rate limiting | `express-rate-limit` — 100 req/15min global, 10 req/15min for auth |
 | CORS | Configurable origin allowlist with credentials support |
@@ -709,7 +730,7 @@ All errors return a consistent JSON structure:
 ```
 
 | HTTP Status | Error |
-|---|---|
+| --- | --- |
 | 400 | Validation error, bad request |
 | 401 | Missing or invalid token |
 | 403 | Insufficient role |
@@ -726,7 +747,7 @@ Files are stored in MinIO (S3-compatible).
 
 ### Upload Flow
 
-```
+```text
 Client → POST /api/media/upload (multipart/form-data)
   → Multer parses file into memory (max 50 MB)
   → Validate MIME type (allowlist)
@@ -739,14 +760,14 @@ Client → POST /api/media/upload (multipart/form-data)
 ### Supported File Types
 
 | Category | MIME Types |
-|---|---|
+| --- | --- |
 | Images | `image/jpeg`, `image/png`, `image/gif`, `image/webp` |
 | Videos | `video/mp4`, `video/quicktime`, `video/x-msvideo` |
 | Documents | `application/pdf`, `application/msword`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
 
 ### Presigned URLs
 
-```
+```text
 GET /api/media/:id/presigned-url?expirySeconds=900
 ```
 
@@ -762,7 +783,7 @@ The AI module analyses wellness form data and generates risk assessments.
 
 ### Analysis Flow
 
-```
+```text
 POST /api/ai/analyze { memberId, dataWindow }
   → Fetch recent wellness forms (last N days)
   → Aggregate: avgFatigue, avgSleep, avgStress, avgMood
@@ -774,7 +795,7 @@ POST /api/ai/analyze { memberId, dataWindow }
 ### Risk Level Logic (Rule-Based Fallback)
 
 | Condition | Risk Level |
-|---|---|
+| --- | --- |
 | avgFatigue ≥ 7 OR avgStress ≥ 7 OR avgSleep ≤ 4 OR avgMood ≤ 4 | `HIGH` |
 | avgFatigue ≥ 5 OR avgStress ≥ 5 OR avgSleep ≤ 6 OR avgMood ≤ 6 | `MEDIUM` |
 | All metrics within healthy range | `LOW` |
@@ -799,7 +820,7 @@ Logs are written **asynchronously after the response** (non-blocking). Only succ
 ### Audit Log Fields
 
 | Field | Description |
-|---|---|
+| --- | --- |
 | userId | The user who performed the action |
 | action | Action name (e.g., `LOGIN`, `CREATE`, `DELETE`) |
 | resource | Resource type (e.g., `auth`, `medical`, `media`) |
