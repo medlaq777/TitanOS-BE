@@ -1,4 +1,9 @@
+
 # TitanOs Backend
+
+<p align="center">
+  <img src="logo.png" alt="TitanOs Logo" width="180" />
+</p>
 
 Sports management platform REST API built with **Node.js**, **Express**, **Prisma ORM**, and **PostgreSQL**. Supports multi-role authentication, athlete tracking, medical records, wellness analysis with AI, file storage via MinIO, fan engagement, and full audit logging.
 
