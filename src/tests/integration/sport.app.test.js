@@ -1,86 +1,86 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import request from "supertest";
 
-const { prismaMock } = vi.hoisted(() => {
-  const prismaMock = {
-    team: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    member: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    session: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    sessionMember: {
-      create: vi.fn(),
-      delete: vi.fn(),
-    },
-    performance: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      aggregate: vi.fn(),
-    },
-    medicalRecord: {
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    auditLog: {
-      create: vi.fn(),
-      findMany: vi.fn(),
-    },
-    idempotencyRecord: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-    },
-    user: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    },
-    $disconnect: vi.fn(),
-  };
-  return { prismaMock };
-});
+const prismaMock = {
+  team: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  member: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  session: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  sessionMember: {
+    create: jest.fn(),
+    delete: jest.fn(),
+  },
+  performance: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    aggregate: jest.fn(),
+  },
+  medicalRecord: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  auditLog: {
+    create: jest.fn(),
+    findMany: jest.fn(),
+  },
+  idempotencyRecord: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+  },
+  user: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+  $disconnect: jest.fn(),
+};
 
-vi.mock("../../common/jwt.js", () => ({
-  verifyAccessToken: vi.fn(() => ({
+await jest.unstable_mockModule("../../common/jwt.js", () => ({
+  signAccessToken: jest.fn(() => "mock-access-token"),
+  signRefreshToken: jest.fn(() => "mock-refresh-token"),
+  verifyAccessToken: jest.fn(() => ({
     sub: "00000000-0000-4000-8000-000000000001",
     email: "admin@test.com",
     role: "ADMIN",
   })),
+  verifyRefreshToken: jest.fn(() => ({ sub: "00000000-0000-4000-8000-000000000001" })),
 }));
 
-vi.mock("../../config/db.js", () => ({
+await jest.unstable_mockModule("../../config/db.js", () => ({
   default: prismaMock,
 }));
 
-import { getFullApp } from "../helpers/fullApp.js";
+const { getFullApp } = await import("../helpers/fullApp.js");
 
 const auth = { Authorization: "Bearer test-token" };
 const teamId = "00000000-0000-4000-8000-000000000002";
 
 describe("Sport API (full app)", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it("GET /api/v1/sport/teams returns teams", async () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "@jest/globals";
 import { registerSchema, loginSchema } from '../../schemas/auth.schemas.js';
 
 describe('registerSchema', () => {

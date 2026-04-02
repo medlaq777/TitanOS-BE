@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import http from "http";
 import WebSocket from "ws";
 import { attachMatchWebSocket, broadcastToMatch } from "../../realtime/matchHub.js";

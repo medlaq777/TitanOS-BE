@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "@jest/globals";
 import { analyzeWellnessSchema, manualInsightSchema } from '../../schemas/ai.schemas.js';
 
 describe('analyzeWellnessSchema', () => {

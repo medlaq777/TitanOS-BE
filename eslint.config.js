@@ -20,7 +20,7 @@ export default [
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.vitest,
+        ...globals.jest,
       },
     },
   },

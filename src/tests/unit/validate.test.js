@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "@jest/globals";
 import { z } from 'zod';
 import { validate, validateAll } from '../../common/validate.js';
 import { ValidationError } from '../../common/errors.js';

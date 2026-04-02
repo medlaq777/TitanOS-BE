@@ -1,20 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 import { SportService } from '../../services/sport.service.js';
 
 function buildRepo() {
   return {
-    findTeamById: vi.fn(),
-    findSessionById: vi.fn(),
-    findMemberById: vi.fn(),
-    createSession: vi.fn(),
-    addParticipant: vi.fn(),
-    createPerformance: vi.fn(),
+    findTeamById: jest.fn(),
+    findSessionById: jest.fn(),
+    findMemberById: jest.fn(),
+    createSession: jest.fn(),
+    addParticipant: jest.fn(),
+    createPerformance: jest.fn(),
   };
 }
 
 describe('SportService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('converts session date string to Date on createSession', async () => {
