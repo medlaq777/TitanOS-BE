@@ -1,7 +1,7 @@
 
 # TitanOs Backend
 
-![TitanOs Logo](logo.png)[width=200px]
+![TitanOs Logo](logo.png)
 
 Sports management REST API built with **Node.js**, **Express**, **Mongoose** (MongoDB), and **Zod**. All HTTP routes are served under **`/api`**. Responses use a fixed shape (`success`, `data`, `message`; errors add `error.code`, and Zod failures may include `error.issues`). Features include offset-based pagination (`limit` / `offset`), JWT + HttpOnly refresh cookies, role guards, teams/sessions/performance, medical records, wellness forms, MinIO media, and fan features (matches, events, actions, articles).
 
