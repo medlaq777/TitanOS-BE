@@ -1,23 +1,12 @@
 import bcrypt from "bcryptjs";
 
-const BCRYPT_ROUNDS = 12;
-const REFRESH_HASH_ROUNDS = 10;
-
 class BcryptUtils {
-  static hashPassword(password) {
-    return bcrypt.hash(password, BCRYPT_ROUNDS);
+  static async hash(value, rounds = 10) {
+    return bcrypt.hash(value, rounds);
   }
 
-  static comparePassword(password, hash) {
-    return bcrypt.compare(password, hash);
-  }
-
-  static hashRefreshToken(token) {
-    return bcrypt.hash(token, REFRESH_HASH_ROUNDS);
-  }
-
-  static compareRefreshToken(token, hash) {
-    return bcrypt.compare(token, hash);
+  static async compare(plainValue, hashedValue) {
+    return bcrypt.compare(plainValue, hashedValue);
   }
 }
 

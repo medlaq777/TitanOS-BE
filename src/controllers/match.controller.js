@@ -3,76 +3,82 @@ import { ApiResponse } from "../common/response.js";
 import { ValidationError } from "../common/errors.js";
 import { idParamSchema } from "../schemas/common.schema.js";
 import * as schemas from "../schemas/match.schema.js";
+import { z } from "zod";
+
+const delayMatchSchema = z.object({
+  newDate: z.string().datetime(),
+});
 
 class MatchController {
-  async startMatch(req, res, next) {
+  async recordGoal(req, res, next) {
     try {
       const idParsed = idParamSchema.safeParse(req.params);
       if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
-      const result = await matchService.startMatch(idParsed.data.id);
+      const result = await matchService.recordGoal(idParsed.data.id);
       return ApiResponse.success(res, result);
     } catch (err) {
       next(err);
     }
   }
 
-  async cancelMatch(req, res, next) {
+  async delayMatch(req, res, next) {
     try {
       const idParsed = idParamSchema.safeParse(req.params);
       if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
-      const result = await matchService.cancelMatch(idParsed.data.id);
-      return ApiResponse.success(res, result);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async postponeMatch(req, res, next) {
-    try {
-      const idParsed = idParamSchema.safeParse(req.params);
-      if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
-      const bodyParsed = schemas.postponeMatchSchema.safeParse(req.body);
+      const bodyParsed = delayMatchSchema.safeParse(req.body);
       if (!bodyParsed.success) throw ValidationError.fromZod(bodyParsed.error);
-      const result = await matchService.postponeMatch(idParsed.data.id, bodyParsed.data.newDate);
+      const result = await matchService.delayMatch(idParsed.data.id, bodyParsed.data.newDate);
       return ApiResponse.success(res, result);
     } catch (err) {
       next(err);
     }
   }
 
-  async addSquadMember(req, res, next) {
+  async finishMatch(req, res, next) {
     try {
       const idParsed = idParamSchema.safeParse(req.params);
       if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
-      const bodyParsed = schemas.addSquadMemberSchema.safeParse(req.body);
-      if (!bodyParsed.success) throw ValidationError.fromZod(bodyParsed.error);
-      const result = await matchService.addSquadMember(idParsed.data.id, bodyParsed.data.memberId);
+      const result = await matchService.finishMatch(idParsed.data.id);
       return ApiResponse.success(res, result);
     } catch (err) {
       next(err);
     }
   }
 
-  async removeSquadMember(req, res, next) {
+  async isUpcoming(req, res, next) {
     try {
       const idParsed = idParamSchema.safeParse(req.params);
       if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
-      const bodyParsed = schemas.removeSquadMemberSchema.safeParse(req.body);
-      if (!bodyParsed.success) throw ValidationError.fromZod(bodyParsed.error);
-      const result = await matchService.removeSquadMember(idParsed.data.id, bodyParsed.data.memberId);
+      const result = await matchService.isUpcoming(idParsed.data.id);
+      return ApiResponse.success(res, { isUpcoming: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getMatchResult(req, res, next) {
+    try {
+      const idParsed = idParamSchema.safeParse(req.params);
+      if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
+      const result = await matchService.getMatchResult(idParsed.data.id);
+      return ApiResponse.success(res, { result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async searchMatches(req, res, next) {
+    try {
+      const result = await matchService.searchMatches(req.query.search || "");
       return ApiResponse.success(res, result);
     } catch (err) {
       next(err);
     }
   }
 
-  async setLineup(req, res, next) {
+  async getAll(req, res, next) {
     try {
-      const idParsed = idParamSchema.safeParse(req.params);
-      if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
-      const bodyParsed = schemas.setLineupSchema.safeParse(req.body);
-      if (!bodyParsed.success) throw ValidationError.fromZod(bodyParsed.error);
-      const result = await matchService.setLineup(idParsed.data.id, bodyParsed.data.starters, bodyParsed.data.subs);
+      const result = await matchService.getAll(req.query);
       return ApiResponse.success(res, result);
     } catch (err) {
       next(err);
@@ -83,7 +89,7 @@ class MatchController {
     try {
       const parsed = schemas.createMatchSchema.safeParse(req.body);
       if (!parsed.success) throw ValidationError.fromZod(parsed.error);
-      const result = await matchService.create(parsed.data);
+      const result = await matchService.createMatch(parsed.data);
       return ApiResponse.created(res, result);
     } catch (err) {
       next(err);

@@ -1,4 +1,5 @@
 import User from "../models/user.model.js";
+import QueryHelper from "./query-helper.js";
 
 class UserRepository {
   async findById(id) {
@@ -17,8 +18,16 @@ class UserRepository {
     return User.findByIdAndDelete(id).exec();
   }
 
+  async findOne(filter = {}) {
+    return User.findOne(filter).exec();
+  }
+
+  async findByEmail(email) {
+    return User.findOne({ email }).exec();
+  }
+
   async find(filter = {}) {
-    return User.find(filter).exec();
+    return User.find(filter).sort(QueryHelper.defaultDescSort()).exec();
   }
 }
 

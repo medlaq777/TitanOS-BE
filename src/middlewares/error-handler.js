@@ -2,10 +2,10 @@ import mongoose from "mongoose";
 import { AppError, ValidationError } from "../common/errors.js";
 
 const MSG = {
-  VALIDATION_FAILED: "Validation failed",
-  INTERNAL_ERROR: "Internal Server Error",
-  NOT_FOUND: "Resource not found",
-  CONFLICT: "Resource already exists",
+  VALIDATION_FAILED: "Request validation failed",
+  INTERNAL_ERROR: "An unexpected error occurred",
+  NOT_FOUND: "Requested resource was not found",
+  CONFLICT: "A resource with the same data already exists",
 };
 
 function codeForPlainHttpStatus(status) {
@@ -18,7 +18,7 @@ function codeForPlainHttpStatus(status) {
 }
 
 export function notFoundHandler(req, res, next) {
-  next(new AppError(`Cannot ${req.method} ${req.originalUrl}`, 404, "NOT_FOUND"));
+  next(new AppError(`Route not found: ${req.method} ${req.originalUrl}`, 404, "NOT_FOUND"));
 }
 
 export function errorHandler(err, req, res, _next) {
@@ -43,19 +43,23 @@ export function errorHandler(err, req, res, _next) {
   }
 
   if (err instanceof mongoose.Error.CastError) {
-    return payload(400, "Invalid id or value", "VALIDATION_ERROR");
+    return payload(400, "Invalid identifier or value format", "VALIDATION_ERROR");
   }
 
   if (err?.code === 11000) {
-    return payload(409, MSG.CONFLICT, "CONFLICT");
+    const duplicatedField = Object.keys(err?.keyPattern || {})[0];
+    const message = duplicatedField
+      ? `${duplicatedField} already exists`
+      : MSG.CONFLICT;
+    return payload(409, message, "CONFLICT");
   }
 
-  if (err?.name === "MulterError" || err.message?.startsWith("Unsupported file type")) {
-    return payload(400, err.message, "VALIDATION_ERROR");
+  if (err?.name === "MulterError" || err?.message?.startsWith("Unsupported file type")) {
+    return payload(400, err?.message ?? MSG.VALIDATION_FAILED, "VALIDATION_ERROR");
   }
 
-  const httpStatus = err.status ?? err.statusCode;
-  if (typeof httpStatus === "number" && httpStatus >= 400 && httpStatus < 600 && err.message) {
+  const httpStatus = err?.status ?? err?.statusCode;
+  if (typeof httpStatus === "number" && httpStatus >= 400 && httpStatus < 600 && err?.message) {
     return payload(httpStatus, err.message, codeForPlainHttpStatus(httpStatus));
   }
 

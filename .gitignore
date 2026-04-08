@@ -45,6 +45,11 @@ Thumbs.db
 .cursor
 plantUML.txt
 diagramClass.txt
-planning.txt
+JIRA_PLANNING.md
 postman/
 seed
+docs
+UML.json
+report.json
+ai-contract.json
+tests/

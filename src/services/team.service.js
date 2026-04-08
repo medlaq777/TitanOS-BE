@@ -1,24 +1,41 @@
-import mongoose from "mongoose";
-import teamRepository from "../repositories/team.repository.js";
-import memberRepository from "../repositories/member.repository.js";
+import teamRepo from "../repositories/team.repository.js";
+import { NotFoundError } from "../common/errors.js";
 
 class TeamService {
-  async getSquadList(id) {
-    const members = await memberRepository.find({ teamId: id }); return members.map(m => m._id);
+  constructor(repo) {
+    this.repo = repo;
   }
 
-  async updateTeamInfo(id, data) {
-    await teamRepository.updateById(id, data); return true;
+  async create(data) {
+    return this.repo.create(data);
   }
 
-  async getTeamAnalytics(id) {
-    return { matchesPlayed: 10, wins: 5, draws: 2, losses: 3 };
+  async update(id, data) {
+    const team = await this.repo.updateById(id, data);
+    if (!team) throw new NotFoundError("Team not found");
+    return team;
   }
 
-  async create(data) { return teamRepository.create(data); }
-  async getById(id) { return teamRepository.findById(id); }
-  async update(id, data) { return teamRepository.updateById(id, data); }
-  async delete(id) { return teamRepository.deleteById(id); }
+  async delete(id) {
+    const team = await this.repo.deleteById(id);
+    if (!team) throw new NotFoundError("Team not found");
+    return team;
+  }
+
+  async getById(id) {
+    const team = await this.repo.findById(id);
+    if (!team) throw new NotFoundError("Team not found");
+    return team;
+  }
+
+  async getAll(filters = {}) {
+    return this.repo.find(filters);
+  }
+
+  async findOne(filter = {}) {
+    return this.repo.findOne(filter);
+  }
 }
 
-export default new TeamService();
+export { TeamService };
+export default new TeamService(teamRepo);

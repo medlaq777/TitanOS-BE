@@ -6,9 +6,9 @@ class Database {
 
   async connect() {
     if (this.connected) return;
-    if (!Config.mongoUri) throw new Error("MongoDB URI not provided in config");
+    if (!Config.db.mongoUri) throw new Error("MongoDB URI not provided in config");
     try {
-      await mongoose.connect(Config.mongoUri);
+      await mongoose.connect(Config.db.mongoUri);
       this.connected = true;
       console.log("MongoDB connected");
     } catch (err) {

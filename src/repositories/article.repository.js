@@ -1,4 +1,5 @@
 import Article from "../models/article.model.js";
+import QueryHelper from "./query-helper.js";
 
 class ArticleRepository {
   async findById(id) {
@@ -18,7 +19,11 @@ class ArticleRepository {
   }
 
   async find(filter = {}) {
-    return Article.find(filter).exec();
+    return Article.find(filter).sort(QueryHelper.defaultDescSort()).exec();
+  }
+
+  async incrementField(id, field) {
+    return Article.findByIdAndUpdate(id, { $inc: { [field]: 1 } }, { new: true }).exec();
   }
 }
 

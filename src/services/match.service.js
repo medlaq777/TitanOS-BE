@@ -1,58 +1,100 @@
-import mongoose from "mongoose";
-import matchRepository from "../repositories/match.repository.js";
-import matchDetailsRepository from "../repositories/match-details.repository.js";
+import matchRepo from "../repositories/match.repository.js";
+import QueryHelper from "../repositories/query-helper.js";
+import { NotFoundError } from "../common/errors.js";
 
 class MatchService {
-  async startMatch(id) {
-    await matchRepository.findById(id); await matchRepository.updateById(id, { status: 'LIVE' }); return true;
+  constructor(repo) {
+    this.repo = repo;
   }
 
-  async cancelMatch(id) {
-    await matchRepository.updateById(id, { status: 'CANCELLED' }); return true;
+  async create(data) {
+    return this.repo.create(data);
   }
 
-  async postponeMatch(id, newDate) {
-    await matchRepository.updateById(id, { scheduledAt: newDate }); return true;
+  async update(id, data) {
+    const match = await this.repo.updateById(id, data);
+    if (!match) throw new NotFoundError("Match not found");
+    return match;
   }
 
-  async addSquadMember(id, memberId) {
-    const match = await matchRepository.findById(id);
-    await matchRepository.updateById(id, { calledUpSquad: [...(match.calledUpSquad || []), memberId] }); return true;
+  async deleteMatch(id) {
+    const match = await this.repo.deleteById(id);
+    if (!match) throw new NotFoundError("Match not found");
+    return match;
   }
 
-  async removeSquadMember(id, memberId) {
-    const match = await matchRepository.findById(id);
-    await matchRepository.updateById(id, { calledUpSquad: (match.calledUpSquad || []).filter(m => m.toString() !== memberId.toString()) }); return true;
+  async getById(id) {
+    const match = await this.repo.findById(id);
+    if (!match) throw new NotFoundError("Match not found");
+    return match;
   }
 
-  async setLineup(id, starters, subs) {
-    const match = await matchRepository.findById(id);
-    if (!match) throw new Error("Match not found");
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      const allPlayers = [...starters, ...subs];
-      const squadStrings = (match.calledUpSquad || []).map(sqId => sqId.toString());
-      for (const p of allPlayers) {
-        if (!squadStrings.includes(p.toString())) {
-          throw new Error("Player not in called up squad");
-        }
-      }
-      await matchDetailsRepository.updateByMatchId(match._id, { starters, substitutes: subs }, { session, upsert: true });
-      await session.commitTransaction();
-    } catch (e) {
-      await session.abortTransaction();
-      throw e;
-    } finally {
-      session.endSession();
-    }
-    return true;
+  async searchMatches(search) {
+    let query = {};
+    query = QueryHelper.applySearch(query, search, ["opponent", "competition", "venue", "status"]);
+    return this.repo.find(query);
   }
 
-  async create(data) { return matchRepository.create(data); }
-  async getById(id) { return matchRepository.findById(id); }
-  async update(id, data) { return matchRepository.updateById(id, data); }
-  async delete(id) { return matchRepository.deleteById(id); }
+  async filterMatches(filters = {}) {
+    let query = {};
+    query = QueryHelper.applyFilters(query, {
+      competition: filters.competition,
+      venue: filters.venue,
+      status: filters.status,
+    });
+    query = QueryHelper.applyDateRange(query, "matchDate", filters.startDate, filters.endDate);
+    return this.repo.find(query);
+  }
+
+  async recordGoal(id) {
+    const match = await this.repo.findById(id);
+    if (!match) throw new NotFoundError("Match not found");
+    const patch = { matchScore: (match.matchScore || 0) + 1 };
+    return this.repo.updateById(id, patch);
+  }
+
+  async delayMatch(id, newDate) {
+    const match = await this.repo.updateById(id, { matchDate: newDate });
+    if (!match) throw new NotFoundError("Match not found");
+    return match;
+  }
+
+  async finishMatch(id) {
+    const match = await this.repo.updateById(id, { status: "FINISHED" });
+    if (!match) throw new NotFoundError("Match not found");
+    return match;
+  }
+
+  async isUpcoming(id) {
+    const match = await this.repo.findById(id);
+    if (!match) throw new NotFoundError("Match not found");
+    return new Date(match.matchDate) > new Date();
+  }
+
+  async getMatchResult(id) {
+    const match = await this.repo.findById(id);
+    if (!match) throw new NotFoundError("Match not found");
+
+    const home = match.homeScore || 0;
+    const away = match.awayScore || 0;
+
+    if (home > away) return "HOME_WIN";
+    if (away > home) return "AWAY_WIN";
+    return "DRAW";
+  }
+
+  async getAll(filters = {}) {
+    return this.filterMatches(filters);
+  }
+
+  async createMatch(data) {
+    return this.create(data);
+  }
+
+  async delete(id) {
+    return this.deleteMatch(id);
+  }
 }
 
-export default new MatchService();
+export { MatchService };
+export default new MatchService(matchRepo);

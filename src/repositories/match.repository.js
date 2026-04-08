@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import Match from "../models/match.model.js";
+import QueryHelper from "./query-helper.js";
 
 class MatchRepository {
   async findById(id) {
@@ -18,7 +20,30 @@ class MatchRepository {
   }
 
   async find(filter = {}) {
-    return Match.find(filter).exec();
+    return Match.find(filter).sort(QueryHelper.defaultDescSort()).exec();
+  }
+
+  async findBySeasonId(seasonId) {
+    return Match.find({ seasonId }).exec();
+  }
+
+  async findFinished() {
+    return Match.find({ status: "FINISHED" }).exec();
+  }
+
+  async withTransaction(work) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const result = await work(session);
+      await session.commitTransaction();
+      return result;
+    } catch (e) {
+      await session.abortTransaction();
+      throw e;
+    } finally {
+      session.endSession();
+    }
   }
 }
 

@@ -4,12 +4,12 @@ import authController from "../controllers/auth.controller.js";
 class AuthRoutes {
   static build() {
     const router = Router();
-    const c = authController;
+    const auth = authController;
 
-    router.post("/register", c.register.bind(c));
-    router.post("/login", c.login.bind(c));
-    router.post("/refresh", c.refresh.bind(c));
-    router.post("/logout", c.logout.bind(c));
+    router.post("/register", auth.register.bind(auth));
+    router.post("/login", auth.login.bind(auth));
+    router.post("/refresh", auth.refresh.bind(auth));
+    router.post("/logout", auth.logout.bind(auth));
 
     return router;
   }

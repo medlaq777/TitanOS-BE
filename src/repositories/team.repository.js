@@ -1,4 +1,5 @@
 import Team from "../models/team.model.js";
+import QueryHelper from "./query-helper.js";
 
 class TeamRepository {
   async findById(id) {
@@ -18,7 +19,11 @@ class TeamRepository {
   }
 
   async find(filter = {}) {
-    return Team.find(filter).exec();
+    return Team.find(filter).sort(QueryHelper.defaultDescSort()).exec();
+  }
+
+  async findOne(filter = {}) {
+    return Team.findOne(filter).exec();
   }
 }
 

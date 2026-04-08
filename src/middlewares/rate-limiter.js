@@ -4,10 +4,12 @@ export class RateLimiterMiddleware {
   constructor() {
     this.apiLimiter = rateLimit({
       windowMs: 15 * 60 * 1000,
-      max: 100,
+      max: 600,
       standardHeaders: true,
       legacyHeaders: false,
-      skip: (req) => req.method === "OPTIONS",
+      skip: (req) =>
+        req.method === "OPTIONS" ||
+        (req.method === "GET" && String(req.path || "").includes("/storage/public/file")),
       handler: (req, res) => {
         const message = "Too many requests, please try again later.";
         res.status(429).json({

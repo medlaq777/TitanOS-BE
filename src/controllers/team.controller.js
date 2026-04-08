@@ -2,50 +2,24 @@ import teamService from "../services/team.service.js";
 import { ApiResponse } from "../common/response.js";
 import { ValidationError } from "../common/errors.js";
 import { idParamSchema } from "../schemas/common.schema.js";
-import * as schemas from "../schemas/team.schema.js";
+import { createTeamSchema } from "../schemas/team.schema.js";
 
 class TeamController {
-  async getSquadList(req, res, next) {
-    try {
-      const idParsed = idParamSchema.safeParse(req.params);
-      if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
-      const result = await teamService.getSquadList(idParsed.data.id);
-      return ApiResponse.success(res, result);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async updateTeamInfo(req, res, next) {
-    try {
-      const idParsed = idParamSchema.safeParse(req.params);
-      if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
-      const bodyParsed = schemas.updateTeamInfoSchema.safeParse(req.body);
-      if (!bodyParsed.success) throw ValidationError.fromZod(bodyParsed.error);
-      const result = await teamService.updateTeamInfo(idParsed.data.id, bodyParsed.data.data);
-      return ApiResponse.success(res, result);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async getTeamAnalytics(req, res, next) {
-    try {
-      const idParsed = idParamSchema.safeParse(req.params);
-      if (!idParsed.success) throw ValidationError.fromZod(idParsed.error);
-      const result = await teamService.getTeamAnalytics(idParsed.data.id);
-      return ApiResponse.success(res, result);
-    } catch (err) {
-      next(err);
-    }
-  }
-
   async create(req, res, next) {
     try {
-      const parsed = schemas.createTeamSchema.safeParse(req.body);
+      const parsed = createTeamSchema.safeParse(req.body);
       if (!parsed.success) throw ValidationError.fromZod(parsed.error);
-      const result = await teamService.create(parsed.data);
+      const result = await teamService.createTeam(parsed.data);
       return ApiResponse.created(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getAll(req, res, next) {
+    try {
+      const result = await teamService.getAll(req.query);
+      return ApiResponse.success(res, result);
     } catch (err) {
       next(err);
     }

@@ -10,7 +10,7 @@ class JwtUtils {
   }
 
   static signRefreshToken(sub) {
-    return jwt.sign({ sub }, Config.jwt.refreshSecret, {
+    return jwt.sign({ sub: String(sub) }, Config.jwt.refreshSecret, {
       expiresIn: Config.jwt.refreshExpiresIn,
     });
   }
