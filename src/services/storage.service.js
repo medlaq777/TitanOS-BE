@@ -11,7 +11,7 @@ const MIME_BY_EXT = {
   bin: "application/octet-stream",
 };
 
-const PUBLIC_OBJECT_PREFIXES = ["profiles/", "galleries/", "media/"];
+const PUBLIC_OBJECT_PREFIXES = ["profiles/", "galleries/", "media/", "products/", "teams/"];
 
 function extMime(objectName) {
   const ext = objectName.includes(".") ? objectName.split(".").pop()?.toLowerCase() : "";
